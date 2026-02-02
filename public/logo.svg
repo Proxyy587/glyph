@@ -1,0 +1,7 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-label="Logo">
+  <rect x="6" y="6" width="36" height="36" rx="8" fill="#fff" stroke="currentColor"/>
+  <path d="M18 18H30V30H18z" fill="none" stroke="currentColor"/>
+  <path d="M14.5 23.5a5 5 0 0 1 9.7-2.2m2.3 11.2a5 5 0 0 0-2.2-9.7" stroke="#007AFF"/>
+  <path d="M23 29L25 25L29 23L25 21L23 17L21 21L17 23L21 25L23 29Z" fill="#FEE440" stroke="#FEE440" stroke-width="1.25"/>
+  <text x="24" y="43" text-anchor="middle" fill="currentColor" font-size="7" font-family="monospace, monospace" font-weight="bold" letter-spacing="2">SVG</text>
+</svg>
