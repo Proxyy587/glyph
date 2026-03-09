@@ -1,19 +1,20 @@
 "use client";
 
 import { SvgGeneratorProvider } from "@/contexts/svg-generator-context";
-import { GeneratorHeader } from "./generator-header";
 import { GeneratorLeftSidebar } from "./generator-left-sidebar";
 import { GeneratorCanvas } from "./generator-canvas";
 import { GeneratorLibrarySidebar } from "./generator-library-sidebar";
 import { GeneratorBottomBar } from "./generator-bottom-bar";
 import { LadderRail } from "./generator-ornaments";
+import { AppHeader } from "@/components/widgets/app-header";
+import { GeneratorHeaderMeta } from "./generator-header";
 
 export function GeneratorLayout() {
   return (
     <SvgGeneratorProvider>
       <div className="dark flex min-h-screen flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
         <div className="mx-auto flex w-full max-w-7xl flex-col border-x border-zinc-800/80">
-          <GeneratorHeader />
+          <AppHeader meta={<GeneratorHeaderMeta />} />
         </div>
 
         <div className="min-h-0 flex-1 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,80rem)_minmax(0,1fr)]">

@@ -1,8 +1,12 @@
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { cleanupSvg } from "@/lib/svg-cleanup";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
+import { auth } from "@/lib/auth";
+import db from "@/lib/db";
+import { svgGeneration, type SvgPackItem } from "@/lib/db/svg-schema";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -28,9 +32,9 @@ export interface SvgApiBody {
   cornerRadius?: number;
   padding?: number;
   viewBoxSize?: 16 | 24 | 32;
-  // NEW: allow frontend to pick provider/model
+  packPrompts?: string[];
   provider?: "openai" | "gemini";
-  model?: string; // For openai: "gpt-4o", "gpt-3.5-turbo", etc. For gemini: "gemini-1.5-flash", etc.
+  model?: string;
 }
 
 const SYSTEM_PROMPT = `You are an SVG icon generator. You output ONLY valid SVG markup—no markdown, no code fences, no explanation.
@@ -70,73 +74,130 @@ function buildUserPrompt(body: SvgApiBody): string {
   return spec;
 }
 
+async function generateSingleSvg(body: SvgApiBody) {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  const provider = body.provider || "gemini";
+  let raw = "";
+  let usedModel = "";
+
+  if (provider === "openai") {
+    if (!openaiApiKey) {
+      throw new Error("Missing OPENAI_API_KEY");
+    }
+
+    const model = body.model || "gpt-4o-mini";
+    usedModel = model;
+    const userPrompt = buildUserPrompt(body);
+    const completion = await generateText({
+      model: openai(model),
+      prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
+    });
+
+    raw = completion.text ?? "";
+  } else if (provider === "gemini") {
+    if (!geminiApiKey) {
+      throw new Error("Missing GEMINI_API_KEY");
+    }
+
+    const model = body.model || "gemini-2.5-flash-lite";
+    usedModel = model;
+    const userPrompt = buildUserPrompt(body);
+    const response = await generateText({
+      model: google(model),
+      prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
+    });
+
+    raw = response.text ?? "";
+  } else {
+    throw new Error(`Invalid provider: ${provider}`);
+  }
+
+  const cleaned = cleanupSvg(raw, {
+    viewBoxSize: body.viewBoxSize ?? 24,
+    strokeWidth: body.strokeWidth,
+    cornerRadius: body.cornerRadius,
+  });
+
+  return { cleaned, raw, usedModel, provider };
+}
+
 export async function POST(request: Request) {
   try {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-
     const body = (await request.json()) as SvgApiBody;
-    if (!body?.prompt?.trim()) {
+    const packPrompts = (body.packPrompts ?? []).map((value) => value.trim()).filter(Boolean);
+    const prompt = body.prompt?.trim();
+
+    if (!prompt && packPrompts.length === 0) {
       return NextResponse.json(
-        { error: "prompt is required" },
+        { error: "prompt or packPrompts is required" },
         { status: 400 }
       );
     }
 
-    const provider = body.provider || "gemini";
-    let raw = "";
-    let usedModel = "";
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-    if (provider === "openai") {
-      if (!openaiApiKey) {
-        return NextResponse.json(
-          { error: "Missing OPENAI_API_KEY" },
-          { status: 500 }
-        );
+    if (packPrompts.length > 0) {
+      const packResults: SvgPackItem[] = [];
+      let lastModel = "";
+      let lastProvider = body.provider || "gemini";
+
+      for (const packPrompt of packPrompts) {
+        try {
+          const { cleaned, raw, usedModel, provider } = await generateSingleSvg({
+            ...body,
+            prompt: packPrompt,
+            packPrompts: undefined,
+          });
+
+          lastModel = usedModel;
+          lastProvider = provider;
+
+          if (!cleaned) {
+            packResults.push({
+              prompt: packPrompt,
+              svg: null,
+              error: `Model did not return valid SVG: ${raw.slice(0, 120)}`,
+            });
+            continue;
+          }
+
+          packResults.push({
+            prompt: packPrompt,
+            svg: cleaned,
+          });
+        } catch (error) {
+          packResults.push({
+            prompt: packPrompt,
+            svg: null,
+            error: error instanceof Error ? error.message : "Generation failed",
+          });
+        }
       }
 
-      const model = body.model || "gpt-4o-mini";
-      usedModel = model;
-
-      const userPrompt = buildUserPrompt(body);
-      const completion = await generateText({
-        model: openai("gpt-4o-mini"),
-        prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
-      });
-
-      console.log("completion", completion);
-
-      raw = completion.text ?? "";
-    } else if (provider === "gemini") {
-      if (!geminiApiKey) {
-        return NextResponse.json(
-          { error: "Missing GEMINI_API_KEY" },
-          { status: 500 }
-        );
+      if (session?.user?.id) {
+        await db.insert(svgGeneration).values({
+          userId: session.user.id,
+          prompt: packPrompts.join("\n"),
+          mode: "pack",
+          generatedSvg: null,
+          generatedPack: packResults,
+        });
       }
 
-      const model = body.model || "gemini-2.5-flash-lite";
-      usedModel = model;
-      const userPrompt = buildUserPrompt(body);
-      const fullPrompt = `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
-      const response = await generateText({
-        model: google("gemini-2.5-flash-lite"),
-        prompt: fullPrompt,
+      return NextResponse.json({
+        packResults,
+        model: lastModel,
+        provider: lastProvider,
+        saved: Boolean(session?.user?.id),
       });
-
-      console.log("response", response);
-      raw = response.text ?? "";
-    } else {
-      return NextResponse.json(
-        { error: `Invalid provider: ${provider}` },
-        { status: 400 }
-      );
     }
 
-    const cleaned = cleanupSvg(raw, {
-      viewBoxSize: body.viewBoxSize ?? 24,
-      strokeWidth: body.strokeWidth,
-      cornerRadius: body.cornerRadius,
+    const { cleaned, raw, usedModel, provider } = await generateSingleSvg({
+      ...body,
+      prompt: prompt!,
     });
 
     if (!cleaned) {
@@ -151,7 +212,22 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ svg: cleaned, model: usedModel, provider });
+    if (session?.user?.id) {
+      await db.insert(svgGeneration).values({
+        userId: session.user.id,
+        prompt: prompt!,
+        mode: "single",
+        generatedSvg: cleaned,
+        generatedPack: null,
+      });
+    }
+
+    return NextResponse.json({
+      svg: cleaned,
+      model: usedModel,
+      provider,
+      saved: Boolean(session?.user?.id),
+    });
   } catch (e) {
     console.error("SVG API error:", e);
     return NextResponse.json(

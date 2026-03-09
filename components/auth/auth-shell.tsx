@@ -33,7 +33,7 @@ export function AuthShell({
   return (
     <div className="dark flex min-h-screen flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
       <div className="mx-auto flex w-full max-w-7xl flex-col border-x border-zinc-800/80">
-        <AppHeader />
+        <AppHeader backHref="/" backLabel="Back to app" />
       </div>
 
       <div className="min-h-0 flex-1 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,80rem)_minmax(0,1fr)]">

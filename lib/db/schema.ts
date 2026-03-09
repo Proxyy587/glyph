@@ -1,3 +1,2 @@
-import * as schema from "@/lib/db/auth-schema";
-
-export default schema
+export * from "@/lib/db/auth-schema";
+export * from "@/lib/db/svg-schema";

@@ -130,34 +130,39 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       error: null,
       packResults: lines.map((prompt) => ({ prompt, svg: null })),
     }));
-    const results: PackItem[] = [];
-    for (const p of lines) {
-      try {
-        const res = await fetch("/api/svg", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: p, ...opts }),
-        });
-        const data = await res.json();
-        if (res.ok && data.svg) {
-          results.push({ prompt: p, svg: data.svg });
-        } else {
-          results.push({
-            prompt: p,
-            svg: null,
-            error: data.error ?? "Failed",
-          });
-        }
-      } catch (e) {
-        results.push({
-          prompt: p,
-          svg: null,
-          error: e instanceof Error ? e.message : "Request failed",
-        });
+    try {
+      const res = await fetch("/api/svg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: lines.join("\n"),
+          packPrompts: lines,
+          ...opts,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setState((s) => ({
+          ...s,
+          loadingPack: false,
+          error: data.error ?? "Failed to generate icon pack",
+        }));
+        return;
       }
-      setState((s) => ({ ...s, packResults: [...results] }));
+
+      setState((s) => ({
+        ...s,
+        loadingPack: false,
+        packResults: (data.packResults as PackItem[]) ?? [],
+      }));
+    } catch (e) {
+      setState((s) => ({
+        ...s,
+        loadingPack: false,
+        error: e instanceof Error ? e.message : "Request failed",
+      }));
     }
-    setState((s) => ({ ...s, loadingPack: false }));
   }, [
     state.packPrompts,
     state.style,
