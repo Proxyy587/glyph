@@ -7,15 +7,15 @@ export function ModeToggle() {
   const { mode, setMode } = useSvgGenerator();
 
   return (
-    <div className="flex gap-0.5 rounded-lg bg-zinc-800/80 p-0.5">
+    <div className="flex gap-0.25 rounded-none bg-zinc-900/50 p-0.5">
       <button
         type="button"
         onClick={() => setMode("single")}
         className={cn(
           "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
           mode === "single"
-            ? "bg-zinc-700 text-zinc-100 shadow-sm"
-            : "text-zinc-500 hover:text-zinc-300"
+            ? "bg-zinc-800/80 rounded-none border border-zinc-800 text-zinc-100 shadow-sm"
+            : "text-zinc-500 hover:text-zinc-300",
         )}
       >
         Single
@@ -26,8 +26,8 @@ export function ModeToggle() {
         className={cn(
           "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
           mode === "pack"
-            ? "bg-zinc-700 text-zinc-100 shadow-sm"
-            : "text-zinc-500 hover:text-zinc-300"
+            ? "bg-zinc-800/80 rounded-none border border-zinc-800 text-zinc-100 shadow-sm"
+            : "text-zinc-500 hover:text-zinc-300",
         )}
       >
         Pack

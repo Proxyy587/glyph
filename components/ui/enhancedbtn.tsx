@@ -6,11 +6,13 @@ export function EnhancedBtn({
   disabled,
   children,
   loading,
+  className,
 }: {
   onClick: () => void;
   disabled?: boolean;
   children: React.ReactNode;
   loading?: boolean;
+  className?: string;
 }) {
   return (
     <Button
@@ -18,7 +20,7 @@ export function EnhancedBtn({
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
-        "mt-auto w-full text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800"
+        "mt-auto w-full text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800",
       )}
       style={{
         padding: 0,

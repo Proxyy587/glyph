@@ -1,6 +1,12 @@
-import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { cleanupSvg } from "@/lib/svg-cleanup";
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const STYLE_GUIDE: Record<string, string> = {
   outline:
@@ -22,6 +28,9 @@ export interface SvgApiBody {
   cornerRadius?: number;
   padding?: number;
   viewBoxSize?: 16 | 24 | 32;
+  // NEW: allow frontend to pick provider/model
+  provider?: "openai" | "gemini";
+  model?: string; // For openai: "gpt-4o", "gpt-3.5-turbo", etc. For gemini: "gemini-1.5-flash", etc.
 }
 
 const SYSTEM_PROMPT = `You are an SVG icon generator. You output ONLY valid SVG markup—no markdown, no code fences, no explanation.
@@ -35,6 +44,11 @@ Rules:
 - Use currentColor for stroke/fill so the icon inherits text color.
 - viewBox: use 0 0 24 24 unless told otherwise. Keep content centered.
 - No script, no event handlers.
+- The <svg> element MUST be the root and appear exactly once.
+- Do NOT include width or height attributes.
+- Do NOT include fill="black" or stroke="black".
+- Use stroke="currentColor" and/or fill="currentColor" only.
+- If unsure, output the simplest possible icon using basic geometry.
 - Output valid XML that can be inlined in HTML.`;
 
 function buildUserPrompt(body: SvgApiBody): string {
@@ -58,13 +72,8 @@ function buildUserPrompt(body: SvgApiBody): string {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing GEMINI_API_KEY" },
-        { status: 500 }
-      );
-    }
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
 
     const body = (await request.json()) as SvgApiBody;
     if (!body?.prompt?.trim()) {
@@ -74,19 +83,56 @@ export async function POST(request: Request) {
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const userPrompt = buildUserPrompt(body);
-    const fullPrompt = `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+    const provider = body.provider || "gemini";
+    let raw = "";
+    let usedModel = "";
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
-      contents: fullPrompt,
-    });
+    if (provider === "openai") {
+      if (!openaiApiKey) {
+        return NextResponse.json(
+          { error: "Missing OPENAI_API_KEY" },
+          { status: 500 }
+        );
+      }
 
-    const models = await ai.models.list();
-    console.log(models);
+      const model = body.model || "gpt-4o-mini";
+      usedModel = model;
 
-    const raw = response.text ?? "";
+      const userPrompt = buildUserPrompt(body);
+      const completion = await generateText({
+        model: openai("gpt-4o-mini"),
+        prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
+      });
+
+      console.log("completion", completion);
+
+      raw = completion.text ?? "";
+    } else if (provider === "gemini") {
+      if (!geminiApiKey) {
+        return NextResponse.json(
+          { error: "Missing GEMINI_API_KEY" },
+          { status: 500 }
+        );
+      }
+
+      const model = body.model || "gemini-2.5-flash-lite";
+      usedModel = model;
+      const userPrompt = buildUserPrompt(body);
+      const fullPrompt = `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`;
+      const response = await generateText({
+        model: google("gemini-2.5-flash-lite"),
+        prompt: fullPrompt,
+      });
+
+      console.log("response", response);
+      raw = response.text ?? "";
+    } else {
+      return NextResponse.json(
+        { error: `Invalid provider: ${provider}` },
+        { status: 400 }
+      );
+    }
+
     const cleaned = cleanupSvg(raw, {
       viewBoxSize: body.viewBoxSize ?? 24,
       strokeWidth: body.strokeWidth,
@@ -95,12 +141,17 @@ export async function POST(request: Request) {
 
     if (!cleaned) {
       return NextResponse.json(
-        { error: "Model did not return valid SVG", raw: raw.slice(0, 500) },
+        {
+          error: "Model did not return valid SVG",
+          raw: raw.slice(0, 500),
+          model: usedModel,
+          provider,
+        },
         { status: 422 }
       );
     }
 
-    return NextResponse.json({ svg: cleaned });
+    return NextResponse.json({ svg: cleaned, model: usedModel, provider });
   } catch (e) {
     console.error("SVG API error:", e);
     return NextResponse.json(
