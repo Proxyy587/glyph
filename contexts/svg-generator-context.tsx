@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   SVG_MODELS,
   type PackItem,
@@ -14,6 +15,9 @@ import {
   type SvgModelId,
   type ViewBoxSize,
 } from "@/lib/svg-generator-types";
+import { useSession } from "@/lib/authClient";
+import { toast } from "sonner";
+
 
 type SvgGeneratorState = {
   mode: "single" | "pack";
@@ -26,6 +30,7 @@ type SvgGeneratorState = {
   padding: number;
   viewBoxSize: ViewBoxSize;
   svg: string | null;
+  displaySvg: string | null;
   packResults: PackItem[];
   loading: boolean;
   loadingPack: boolean;
@@ -62,6 +67,7 @@ const initialState: SvgGeneratorState = {
   padding: 0,
   viewBoxSize: 24,
   svg: null,
+  displaySvg: null,
   packResults: [],
   loading: false,
   loadingPack: false,
@@ -75,6 +81,8 @@ const SvgGeneratorContext = createContext<SvgGeneratorContextValue | null>(
 
 export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SvgGeneratorState>(initialState);
+  const router = useRouter();
+  const { data: session } = useSession();
 
   const currentModel =
     SVG_MODELS.find((entry) => entry.id === state.modelId) ?? SVG_MODELS[0];
@@ -91,11 +99,21 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
 
   const generate = useCallback(async () => {
     if (!state.prompt.trim()) return;
+
+    if (!session?.user) {
+      // Lightweight feedback + redirect for unauthenticated users
+      router.push("/sign-in");
+      toast.error("You need to be signed in to generate SVGs.");
+      
+      return;
+    }
+
     setState((s) => ({
       ...s,
       loading: true,
       error: null,
       svg: null,
+      displaySvg: null,
     }));
     try {
       const res = await fetch("/api/svg", {
@@ -115,7 +133,39 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         }));
         return;
       }
-      setState((s) => ({ ...s, loading: false, svg: data.svg }));
+      const full = (data.svg as string) ?? "";
+
+      // Store full SVG for copy/download
+      setState((s) => ({
+        ...s,
+        loading: false,
+        svg: full,
+        displaySvg: "",
+      }));
+
+      // Lightweight "drawing" animation: progressively reveal SVG markup
+      if (typeof window !== "undefined" && full) {
+        const total = full.length;
+        const steps = 40;
+        const increment = Math.max(1, Math.floor(total / steps));
+
+        let index = 0;
+
+        const tick = () => {
+          index += increment;
+          const slice = full.slice(0, index);
+          setState((s) => ({
+            ...s,
+            displaySvg: slice,
+          }));
+
+          if (index < total) {
+            window.requestAnimationFrame(tick);
+          }
+        };
+
+        window.requestAnimationFrame(tick);
+      }
     } catch (e) {
       setState((s) => ({
         ...s,
@@ -130,6 +180,8 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     state.cornerRadius,
     state.padding,
     state.viewBoxSize,
+    session?.user,
+    router,
   ]);
 
   const generatePack = useCallback(async () => {
@@ -138,6 +190,15 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       .map((s) => s.trim())
       .filter(Boolean);
     if (lines.length === 0) return;
+
+    if (!session?.user) {
+      if (typeof window !== "undefined") {
+        window.alert("You need to be signed in to generate an icon pack.");
+      }
+      router.push("/sign-in");
+      return;
+    }
+
     setState((s) => ({
       ...s,
       loadingPack: true,
@@ -184,6 +245,8 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     state.cornerRadius,
     state.padding,
     state.viewBoxSize,
+    session?.user,
+    router,
   ]);
 
   const copySvg = useCallback(async () => {

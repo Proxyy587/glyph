@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
@@ -33,7 +33,7 @@ export function GeneratorLeftSidebar() {
           Design
         </p>
         <p className="mt-2 max-w-[220px] text-xs leading-5 text-zinc-400">
-          Tune the prompt, style, and geometry before generating a clean SVG.
+          Tune before generating a clean SVG.
         </p>
       </div>
       <div className="flex">
@@ -59,10 +59,8 @@ export function GeneratorLeftSidebar() {
                   className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
                 >
                   <span>
-                    {
-                      SVG_MODELS.find((entry) => entry.id === modelId)
-                        ?.label ?? "Choose model"
-                    }
+                    {SVG_MODELS.find((entry) => entry.id === modelId)?.label ??
+                      "Choose model"}
                   </span>
                 </SelectTrigger>
                 <SelectContent

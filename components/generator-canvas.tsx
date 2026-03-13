@@ -9,11 +9,12 @@ import { PackLoading } from "@/components/svg-generator/pack-loading";
 import { EmptyState } from "@/components/svg-generator/empty-state";
 
 export function GeneratorCanvas() {
-  const { mode, svg, loading, packResults, loadingPack } = useSvgGenerator();
+  const { mode, svg, displaySvg, loading, packResults, loadingPack } =
+    useSvgGenerator();
   const [tab, setTab] = useState<"canvas" | "code">("canvas");
   const [editedSvg, setEditedSvg] = useState<string | null>(null);
 
-  const activeSvg = editedSvg ?? svg ?? "";
+  const activeSvg = editedSvg ?? displaySvg ?? svg ?? "";
 
   useEffect(() => {
     // Reset edited SVG when a new one comes in
