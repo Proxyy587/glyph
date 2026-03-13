@@ -7,12 +7,19 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { PackItem, StyleId, ViewBoxSize } from "@/lib/svg-generator-types";
+import {
+  SVG_MODELS,
+  type PackItem,
+  type StyleId,
+  type SvgModelId,
+  type ViewBoxSize,
+} from "@/lib/svg-generator-types";
 
 type SvgGeneratorState = {
   mode: "single" | "pack";
   prompt: string;
   packPrompts: string;
+  modelId: SvgModelId;
   style: StyleId;
   strokeWidth: number;
   cornerRadius: number;
@@ -30,6 +37,7 @@ type SvgGeneratorContextValue = SvgGeneratorState & {
   setMode: (mode: "single" | "pack") => void;
   setPrompt: (prompt: string) => void;
   setPackPrompts: (prompt: string) => void;
+  setModelId: (id: SvgModelId) => void;
   setStyle: (style: StyleId) => void;
   setStrokeWidth: (v: number) => void;
   setCornerRadius: (v: number) => void;
@@ -47,6 +55,7 @@ const initialState: SvgGeneratorState = {
   mode: "single",
   prompt: "cloud upload icon",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
+  modelId: "gemini-flash",
   style: "outline",
   strokeWidth: 1.5,
   cornerRadius: 0,
@@ -67,12 +76,17 @@ const SvgGeneratorContext = createContext<SvgGeneratorContextValue | null>(
 export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SvgGeneratorState>(initialState);
 
+  const currentModel =
+    SVG_MODELS.find((entry) => entry.id === state.modelId) ?? SVG_MODELS[0];
+
   const opts = {
     style: state.style,
     strokeWidth: state.strokeWidth,
     cornerRadius: state.cornerRadius,
     padding: state.padding,
     viewBoxSize: state.viewBoxSize,
+    provider: currentModel.provider,
+    model: currentModel.model,
   };
 
   const generate = useCallback(async () => {
@@ -210,6 +224,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     setMode: (mode) => setState((s) => ({ ...s, mode })),
     setPrompt: (prompt) => setState((s) => ({ ...s, prompt })),
     setPackPrompts: (packPrompts) => setState((s) => ({ ...s, packPrompts })),
+    setModelId: (modelId) => setState((s) => ({ ...s, modelId })),
     setStyle: (style) => setState((s) => ({ ...s, style })),
     setStrokeWidth: (strokeWidth) => setState((s) => ({ ...s, strokeWidth })),
     setCornerRadius: (cornerRadius) =>

@@ -26,3 +26,36 @@ export type SvgOptions = {
   padding: number;
   viewBoxSize: ViewBoxSize;
 };
+
+export const SVG_MODELS = [
+  {
+    id: "gemini-flash",
+    label: "Gemini Flash",
+    provider: "gemini" as const,
+    model: "gemini-2.5-flash-lite",
+    hint: "Fast, cheap, good defaults",
+  },
+  {
+    id: "gemini-pro",
+    label: "Gemini Pro",
+    provider: "gemini" as const,
+    model: "gemini-2.5-pro",
+    hint: "Higher fidelity, slower",
+  },
+  {
+    id: "gpt-4o-mini",
+    label: "GPT-4o mini",
+    provider: "openai" as const,
+    model: "gpt-4o-mini",
+    hint: "Balanced quality/speed",
+  },
+  {
+    id: "gpt-4o",
+    label: "GPT-4o",
+    provider: "openai" as const,
+    model: "gpt-4o",
+    hint: "Maximum quality",
+  },
+] as const;
+
+export type SvgModelId = (typeof SVG_MODELS)[number]["id"];

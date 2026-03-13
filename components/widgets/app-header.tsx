@@ -22,12 +22,17 @@ export function AppHeader({
 
   return (
     <header className="relative flex h-14 items-center justify-between px-4 sm:px-6">
-      <Link
-        href="/"
-        className=" tracking-[0.18em] text-zinc-100 uppercase no-underline"
-      >
-        Glyph
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/"
+          className="tracking-[0.18em] text-zinc-100 uppercase no-underline"
+        >
+          Glyph
+        </Link>
+        <span className="flex h-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 px-2 text-[9px] font-medium uppercase tracking-[0.16em] text-zinc-400">
+          Beta
+        </span>
+      </div>
 
       <div className="hidden items-center gap-3 md:flex">
         {meta}

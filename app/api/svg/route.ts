@@ -53,9 +53,23 @@ Rules:
 - Do NOT include fill="black" or stroke="black".
 - Use stroke="currentColor" and/or fill="currentColor" only.
 - If unsure, output the simplest possible icon using basic geometry.
-- Output valid XML that can be inlined in HTML.`;
+-- Output valid XML that can be inlined in HTML.`;
 
-function buildUserPrompt(body: SvgApiBody): string {
+const AMPLIFIER_PROMPT = `You are an expert icon designer and SVG engineer.
+
+Given a short user request for an SVG icon, rewrite it into a precise design brief that describes:
+- the core concept and metaphor of the icon
+- the key shapes and their composition (for a 24x24 icon grid)
+- stroke style (outline or solid), stroke width, corner style
+- which visual details to AVOID (too many details, tiny gaps, visual noise)
+
+Rules:
+- Do NOT write SVG or code.
+- Use 2–4 short paragraphs or bullet points.
+- Focus on geometry and composition, not colors or branding.
+- Assume a developer-grade icon system (Lucide / Heroicons / Tabler style).`;
+
+function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   const style = body.style && STYLE_GUIDE[body.style] ? body.style : "outline";
   const styleDesc = STYLE_GUIDE[style];
   const size = body.viewBoxSize ?? 24;
@@ -63,7 +77,9 @@ function buildUserPrompt(body: SvgApiBody): string {
   const radius = body.cornerRadius ?? 0;
   const padding = body.padding ?? 0;
 
-  let spec = `Icon: ${body.prompt.trim()}\n`;
+  let spec = `User request: ${body.prompt.trim()}\n\n`;
+  spec += `Design brief:\n${designBrief.trim()}\n\n`;
+  spec += `Icon constraints:\n`;
   spec += `Style: ${styleDesc}\n`;
   spec += `ViewBox: 0 0 ${size} ${size}. Keep icon centered`;
   if (padding > 0) spec += ` with ${padding}px padding`;
@@ -74,12 +90,54 @@ function buildUserPrompt(body: SvgApiBody): string {
   return spec;
 }
 
+async function amplifyPrompt(body: SvgApiBody): Promise<string> {
+  const basePrompt = body.prompt?.trim();
+  if (!basePrompt) return "";
+
+  const geminiApiKey =
+    process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  const provider = body.provider || "gemini";
+
+  try {
+    if (provider === "openai" && openaiApiKey) {
+      const result = await generateText({
+        model: openai("gpt-4o-mini"),
+        prompt: `${AMPLIFIER_PROMPT}\n\nUser request: ${basePrompt}`,
+      });
+      return result.text?.trim() || "";
+    }
+
+    if (provider === "gemini") {
+      if (!geminiApiKey) {
+        throw new Error(
+          "Google Generative AI API key is missing. Pass it using the 'apiKey' parameter or the GOOGLE_GENERATIVE_AI_API_KEY environment variable.",
+        );
+      }
+      const result = await generateText({
+        model: google("gemini-2.5-flash-lite"),
+        temperature: 0.5,
+        system: SYSTEM_PROMPT,
+        prompt: `${AMPLIFIER_PROMPT}\n\nUser request: ${basePrompt}`,
+      });
+      return result.text?.trim() || "";
+    }
+  } catch (error) {
+    console.error("Prompt amplifier failed:", error);
+  }
+
+  return "";
+}
+
 async function generateSingleSvg(body: SvgApiBody) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiApiKey =
+    process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
   const provider = body.provider || "gemini";
   let raw = "";
   let usedModel = "";
+
+  const designBrief = await amplifyPrompt(body);
 
   if (provider === "openai") {
     if (!openaiApiKey) {
@@ -88,7 +146,7 @@ async function generateSingleSvg(body: SvgApiBody) {
 
     const model = body.model || "gpt-4o-mini";
     usedModel = model;
-    const userPrompt = buildUserPrompt(body);
+    const userPrompt = buildUserPrompt(body, designBrief || body.prompt);
     const completion = await generateText({
       model: openai(model),
       prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
@@ -97,12 +155,14 @@ async function generateSingleSvg(body: SvgApiBody) {
     raw = completion.text ?? "";
   } else if (provider === "gemini") {
     if (!geminiApiKey) {
-      throw new Error("Missing GEMINI_API_KEY");
+      throw new Error(
+        "Google Generative AI API key is missing. Pass it using the 'apiKey' parameter or the GOOGLE_GENERATIVE_AI_API_KEY environment variable.",
+      );
     }
 
     const model = body.model || "gemini-2.5-flash-lite";
     usedModel = model;
-    const userPrompt = buildUserPrompt(body);
+    const userPrompt = buildUserPrompt(body, designBrief || body.prompt);
     const response = await generateText({
       model: google(model),
       prompt: `${SYSTEM_PROMPT}\n\n---\n\n${userPrompt}`,
@@ -125,13 +185,17 @@ async function generateSingleSvg(body: SvgApiBody) {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as SvgApiBody;
-    const packPrompts = (body.packPrompts ?? []).map((value) => value.trim()).filter(Boolean);
+    const packPrompts = (body.packPrompts ?? [])
+      .map((value) => value.trim())
+      .filter(Boolean);
     const prompt = body.prompt?.trim();
 
     if (!prompt && packPrompts.length === 0) {
       return NextResponse.json(
-        { error: "prompt or packPrompts is required" },
-        { status: 400 }
+        {
+          error: "Enter a prompt and click Generate to see your icon.",
+        },
+        { status: 400 },
       );
     }
 
@@ -146,11 +210,13 @@ export async function POST(request: Request) {
 
       for (const packPrompt of packPrompts) {
         try {
-          const { cleaned, raw, usedModel, provider } = await generateSingleSvg({
-            ...body,
-            prompt: packPrompt,
-            packPrompts: undefined,
-          });
+          const { cleaned, raw, usedModel, provider } = await generateSingleSvg(
+            {
+              ...body,
+              prompt: packPrompt,
+              packPrompts: undefined,
+            },
+          );
 
           lastModel = usedModel;
           lastProvider = provider;
@@ -208,7 +274,7 @@ export async function POST(request: Request) {
           model: usedModel,
           provider,
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -231,8 +297,10 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("SVG API error:", e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Generation failed" },
-      { status: 500 }
+      {
+        error: e instanceof Error ? e.message : "Generation failed",
+      },
+      { status: 500 },
     );
   }
 }
