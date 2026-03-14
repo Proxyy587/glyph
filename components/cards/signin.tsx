@@ -38,7 +38,9 @@ export default function SignInForm() {
     },
   });
 
-  function onSubmit(data: z.infer<typeof formSchema>) {}
+  function onSubmit(data: z.infer<typeof formSchema>) {
+    console.log(data);
+  }
 
   return (
     <Card className="w-full sm:max-w-md max-w-md">
