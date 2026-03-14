@@ -20,6 +20,7 @@ export function EnhancedBtn({
       onClick={onClick}
       disabled={disabled || loading}
       className={cn(
+        className,
         "mt-auto w-full text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800",
       )}
       style={{
