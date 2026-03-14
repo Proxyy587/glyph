@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
 import { ErrorMessage } from "@/components/svg-generator/error-message";
 import { PackGrid } from "@/components/svg-generator/pack-grid";
@@ -12,14 +12,11 @@ export function GeneratorCanvas() {
   const { mode, svg, displaySvg, loading, packResults, loadingPack } =
     useSvgGenerator();
   const [tab, setTab] = useState<"canvas" | "code">("canvas");
+  // Remove automatic clearing of editedSvg in useEffect
   const [editedSvg, setEditedSvg] = useState<string | null>(null);
 
-  const activeSvg = editedSvg ?? displaySvg ?? svg ?? "";
-
-  useEffect(() => {
-    // Reset edited SVG when a new one comes in
-    setEditedSvg(null);
-  }, [svg]);
+  // Compute activeSvg: if svg changes, this resets unless user is typing
+  const activeSvg = editedSvg !== null ? editedSvg : displaySvg ?? svg ?? "";
 
   const hasSingleResult = Boolean(svg);
 

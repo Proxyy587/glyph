@@ -2,7 +2,6 @@
 
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
 import { cn } from "@/lib/utils";
-import { ModeToggle } from "@/components/svg-generator/mode-toggle";
 
 export function GeneratorBottomBar() {
   const {
@@ -57,8 +56,6 @@ export function GeneratorBottomBar() {
           label
         )}
       </button>
-
-
 
       <div className="absolute top-0 left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-700 bg-[#0a0a0c]" />
       <div className="absolute top-0 right-0 h-2.5 w-2.5 translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-700 bg-[#0a0a0c]" />

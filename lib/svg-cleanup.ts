@@ -63,7 +63,7 @@ function setViewBox(svg: string, size: number): string {
  * Remove script and event attributes for safety; strip unwanted styling.
  */
 function stripUnsafe(svg: string): string {
-  let out = svg
+  const out = svg
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
     .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, "");

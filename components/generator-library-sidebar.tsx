@@ -12,6 +12,18 @@ type HistoryItem = {
   createdAt: string;
 };
 
+function isHistoryItem(value: unknown): value is HistoryItem {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === "string" &&
+    typeof v.prompt === "string" &&
+    typeof v.svg === "string" &&
+    (v.mode === "single" || v.mode === "pack") &&
+    typeof v.createdAt === "string"
+  );
+}
+
 export function GeneratorLibrarySidebar() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +35,7 @@ export function GeneratorLibrarySidebar() {
         const res = await fetch("/api/svg/history", { cache: "no-store" });
         const data = await res.json();
         if (!cancelled && Array.isArray(data.items)) {
-          setItems(
-            data.items.map((item: any) => ({
-              ...item,
-              createdAt: item.createdAt,
-            })),
-          );
+          setItems(data.items.filter(isHistoryItem));
         }
       } catch {
         if (!cancelled) {

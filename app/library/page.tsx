@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { LadderRail } from "@/components/generator-ornaments";
 import { AppHeader } from "@/components/widgets/app-header";
 

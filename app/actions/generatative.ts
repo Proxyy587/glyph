@@ -7,4 +7,8 @@ interface GenerateSvgProps {
 
 export async function generateSvg(GenerateSvgProps: GenerateSvgProps) {
   const { prompt, model } = GenerateSvgProps;
+  return {
+    prompt,
+    model,
+  };
 }

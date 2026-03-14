@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -87,15 +88,26 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const currentModel =
     SVG_MODELS.find((entry) => entry.id === state.modelId) ?? SVG_MODELS[0];
 
-  const opts = {
-    style: state.style,
-    strokeWidth: state.strokeWidth,
-    cornerRadius: state.cornerRadius,
-    padding: state.padding,
-    viewBoxSize: state.viewBoxSize,
-    provider: currentModel.provider,
-    model: currentModel.model,
-  };
+  const opts = useMemo(
+    () => ({
+      style: state.style,
+      strokeWidth: state.strokeWidth,
+      cornerRadius: state.cornerRadius,
+      padding: state.padding,
+      viewBoxSize: state.viewBoxSize,
+      provider: currentModel.provider,
+      model: currentModel.model,
+    }),
+    [
+      state.style,
+      state.strokeWidth,
+      state.cornerRadius,
+      state.padding,
+      state.viewBoxSize,
+      currentModel.provider,
+      currentModel.model,
+    ],
+  );
 
   const generate = useCallback(async () => {
     if (!state.prompt.trim()) return;
@@ -175,11 +187,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     }
   }, [
     state.prompt,
-    state.style,
-    state.strokeWidth,
-    state.cornerRadius,
-    state.padding,
-    state.viewBoxSize,
+    opts,
     session?.user,
     router,
   ]);
@@ -240,11 +248,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     }
   }, [
     state.packPrompts,
-    state.style,
-    state.strokeWidth,
-    state.cornerRadius,
-    state.padding,
-    state.viewBoxSize,
+    opts,
     session?.user,
     router,
   ]);
