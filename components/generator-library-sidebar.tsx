@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -89,8 +89,8 @@ export function GeneratorLibrarySidebar() {
               No icons yet
             </p>
             <p className="mt-3 text-xs leading-5 text-zinc-600">
-              Generate an icon on the left and it will show up here with a
-              tiny preview.
+              Generate an icon on the left and it will show up here with a tiny
+              preview.
             </p>
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 border-b border-r border-zinc-600/40" />
             <span className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b border-l border-zinc-600/40" />
@@ -102,9 +102,7 @@ export function GeneratorLibrarySidebar() {
         {!loading && items.length > 0 && (
           <div className="space-y-3">
             {items.map((item) => {
-              const date = item.createdAt
-                ? new Date(item.createdAt)
-                : null;
+              const date = item.createdAt ? new Date(item.createdAt) : null;
               const label =
                 item.prompt.trim().slice(0, 60) ||
                 (item.mode === "pack" ? "Pack item" : "Icon");
@@ -122,9 +120,7 @@ export function GeneratorLibrarySidebar() {
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs text-zinc-200">
-                        {label}
-                      </p>
+                      <p className="truncate text-xs text-zinc-200">{label}</p>
                       <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-zinc-600">
                         {date
                           ? date.toLocaleDateString(undefined, {
