@@ -21,7 +21,10 @@ const EngineSelect = dynamic(
     }) {
       const { Select, SelectContent, SelectItem, SelectTrigger } = mod;
       return (
-        <Select value={modelId} onValueChange={(value) => setModelId(value as SvgModelId)}>
+        <Select
+          value={modelId}
+          onValueChange={(value) => setModelId(value as SvgModelId)}
+        >
           <SelectTrigger
             size="sm"
             className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"

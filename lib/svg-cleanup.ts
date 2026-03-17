@@ -30,7 +30,7 @@ export function extractSvg(raw: string): string | null {
  * Parse viewBox from SVG string.
  */
 function getViewBox(
-  svg: string
+  svg: string,
 ): { x: number; y: number; w: number; h: number } | null {
   const m = svg.match(/viewBox\s*=\s*["']([^"']+)["']/i);
   if (!m) return null;
@@ -55,7 +55,7 @@ function setViewBox(svg: string, size: number): string {
     .replace(/\s*height\s*=\s*["'][^"']*["']/i, "")
     .replace(
       /<svg/i,
-      `<svg viewBox="${viewBox}" width="${size}" height="${size}" `
+      `<svg viewBox="${viewBox}" width="${size}" height="${size}" `,
     );
 }
 
@@ -84,7 +84,7 @@ function applyStroke(svg: string, strokeWidth: number): string {
           if (open.includes("stroke-width") || open.includes("strokeWidth"))
             return open + close;
           return open + ` stroke-width="${dec}"` + close;
-        }
+        },
       );
   }
   return svg
@@ -109,7 +109,7 @@ function applyCornerRadius(svg: string, radius: number): string {
  */
 export function cleanupSvg(
   raw: string,
-  options: CleanupOptions = {}
+  options: CleanupOptions = {},
 ): string | null {
   const svg = extractSvg(raw);
   if (!svg) return null;

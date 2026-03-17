@@ -78,7 +78,7 @@ export function IconControls() {
                 "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                 viewBoxSize === size
                   ? "bg-zinc-100 text-zinc-900"
-                  : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                  : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200",
               )}
             >
               {size}

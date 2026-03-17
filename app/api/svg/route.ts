@@ -14,11 +14,7 @@ import {
   findRelevantExample,
 } from "@/lib/svg-prompts";
 
-// ─── Provider Clients ────────────────────────────────────────────────────────
-
 const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SvgApiBody {
   prompt: string;
@@ -31,8 +27,6 @@ export interface SvgApiBody {
   provider?: "openai" | "gemini" | "anthropic";
   model?: string;
 }
-
-// ─── Prompts ─────────────────────────────────────────────────────────────────
 
 // const SYSTEM_PROMPT = `You are a world-class SVG icon engineer. You output ONLY valid SVG markup — no markdown, no code fences, no explanation, no comments outside the SVG.
 
@@ -88,8 +82,6 @@ export interface SvgApiBody {
 // - Think in terms of geometry, not art.
 // - Assume Lucide/Heroicons visual language: minimal, clean, 1.5px stroke, rounded caps.`;
 
-// ─── Prompt Builder ───────────────────────────────────────────────────────────
-
 function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   const style = body.style && STYLE_GUIDE[body.style] ? body.style : "outline";
   const styleDesc = STYLE_GUIDE[style];
@@ -98,7 +90,6 @@ function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   const radius = body.cornerRadius ?? 0;
   const padding = body.padding ?? 0;
 
-  // Inject a relevant reference example if we have one
   const relevantExample = findRelevantExample(body.prompt);
 
   let spec = `User request: "${body.prompt.trim()}"\n\n`;
@@ -121,11 +112,6 @@ function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   return spec;
 }
 
-// ─── Prompt Amplifier ─────────────────────────────────────────────────────────
-// Uses a cheap/fast model to expand vague prompts into precise design briefs.
-// Gemini Flash Lite is fine here — it's just writing text, not geometry.
-// For the Anthropic/Claude part, use a Gemini model instead.
-
 async function amplifyPrompt(body: SvgApiBody): Promise<string> {
   const basePrompt = body.prompt?.trim();
   if (!basePrompt) return "";
@@ -143,9 +129,7 @@ async function amplifyPrompt(body: SvgApiBody): Promise<string> {
       return result.text?.trim() || "";
     }
 
-    // Swap out "anthropic" for Gemini as requested
     if (provider === "anthropic") {
-      // Use gemini-2.5-flash-lite for amplification when "anthropic" provider is requested
       if (
         !process.env.GEMINI_API_KEY &&
         !process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -161,7 +145,6 @@ async function amplifyPrompt(body: SvgApiBody): Promise<string> {
       return result.text?.trim() || "";
     }
 
-    // Default: gemini flash lite (cheapest, fine for text)
     if (
       !process.env.GEMINI_API_KEY &&
       !process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -177,14 +160,9 @@ async function amplifyPrompt(body: SvgApiBody): Promise<string> {
     return result.text?.trim() || "";
   } catch (error) {
     console.error("[amplifyPrompt] failed:", error);
-    return ""; // Gracefully degrade — generation still works without amplification
+    return "";
   }
 }
-
-// ─── SVG Generator ────────────────────────────────────────────────────────────
-// Uses the strongest available model for actual SVG generation.
-// system + prompt are passed separately (correct API usage).
-// For the Anthropic/Claude part, use a Gemini model instead.
 
 async function generateSingleSvg(body: SvgApiBody) {
   const provider = body.provider || "gemini";
@@ -200,13 +178,12 @@ async function generateSingleSvg(body: SvgApiBody) {
     usedModel = model;
     const completion = await generateText({
       model: openai(model),
-      system: SYSTEM_PROMPT, // ← correct: system separate from prompt
+      system: SYSTEM_PROMPT,
       prompt: userPrompt,
-      temperature: 0.2, // low temperature = more precise geometry
+      temperature: 0.2,
     });
     raw = completion.text ?? "";
   } else if (provider === "anthropic") {
-    // Use gemini for "anthropic"
     if (
       !process.env.GEMINI_API_KEY &&
       !process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -229,12 +206,11 @@ async function generateSingleSvg(body: SvgApiBody) {
     ) {
       throw new Error("Missing Gemini API key");
     }
-    // Use the stronger Gemini model for generation, not the lite version
     const model = body.model || "gemini-2.5-flash";
     usedModel = model;
     const response = await generateText({
       model: google(model),
-      system: SYSTEM_PROMPT, // ← correct: system separate from prompt
+      system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.2,
     });
@@ -251,10 +227,6 @@ async function generateSingleSvg(body: SvgApiBody) {
 
   return { cleaned, raw, usedModel, provider };
 }
-
-// ─── Smart Retry ──────────────────────────────────────────────────────────────
-// On failure, feeds the broken SVG back to the model as context so it can fix it.
-// This is much smarter than blindly retrying with the same input.
 
 async function generateSingleSvgWithRetry(
   body: SvgApiBody,
@@ -274,7 +246,6 @@ async function generateSingleSvgWithRetry(
   } | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    // On retry, append the previous broken output so the model can learn from its mistake
     const bodyForAttempt =
       attempt === 0
         ? body
@@ -305,9 +276,6 @@ async function generateSingleSvgWithRetry(
   throw new Error("SVG generation failed after all retries");
 }
 
-// ─── Style Lock for Pack Generation ──────────────────────────────────────────
-// Extracts style tokens from the first successful icon so all pack icons match.
-
 function extractStyleTokens(svg: string): string {
   const strokeWidthMatch = svg.match(/stroke-width="([^"]+)"/);
   const strokeLinecapMatch = svg.match(/stroke-linecap="([^"]+)"/);
@@ -330,8 +298,6 @@ function extractStyleTokens(svg: string): string {
   );
 }
 
-// ─── Main API Route ───────────────────────────────────────────────────────────
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as SvgApiBody;
@@ -349,7 +315,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Auth check — required for all generation
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -357,10 +322,9 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-
-    // ── Pack Mode ──────────────────────────────────────────────────────────────
+    
     if (packPrompts.length > 0) {
-      let styleTokens = ""; // Will be populated after first icon succeeds
+      let styleTokens = "";
 
       // Generate all icons in parallel for speed
       // Style lock: inject style tokens from icon #1 into icons #2–N

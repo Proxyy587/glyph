@@ -104,7 +104,9 @@ export function AuthPanel({ mode }: AuthPanelProps) {
           className="flex w-full items-center justify-center gap-2 border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:pointer-events-none disabled:opacity-50"
         >
           <Github className="size-4" />
-          {isGithubLoading ? "Redirecting to GitHub..." : "Continue with GitHub"}
+          {isGithubLoading
+            ? "Redirecting to GitHub..."
+            : "Continue with GitHub"}
         </button>
 
         <div className="flex items-center gap-3">

@@ -19,7 +19,6 @@ import {
 import { useSession } from "@/lib/authClient";
 import { toast } from "sonner";
 
-
 type SvgGeneratorState = {
   mode: "single" | "pack";
   prompt: string;
@@ -54,6 +53,7 @@ type SvgGeneratorContextValue = SvgGeneratorState & {
   copySvg: () => Promise<void>;
   downloadSvg: (content: string, name?: string) => void;
   downloadSingle: () => void;
+  loadSvgIntoWorkspace: (svg: string, prompt?: string) => void;
   clearError: () => void;
 };
 
@@ -77,7 +77,7 @@ const initialState: SvgGeneratorState = {
 };
 
 const SvgGeneratorContext = createContext<SvgGeneratorContextValue | null>(
-  null
+  null,
 );
 
 export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
@@ -116,7 +116,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       // Lightweight feedback + redirect for unauthenticated users
       router.push("/sign-in");
       toast.error("You need to be signed in to generate SVGs.");
-      
+
       return;
     }
 
@@ -185,12 +185,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [
-    state.prompt,
-    opts,
-    session?.user,
-    router,
-  ]);
+  }, [state.prompt, opts, session?.user, router]);
 
   const generatePack = useCallback(async () => {
     const lines = state.packPrompts
@@ -246,12 +241,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [
-    state.packPrompts,
-    opts,
-    session?.user,
-    router,
-  ]);
+  }, [state.packPrompts, opts, session?.user, router]);
 
   const copySvg = useCallback(async () => {
     if (!state.svg) return;
@@ -282,6 +272,18 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     downloadSvg(state.svg, name);
   }, [state.svg, state.prompt, downloadSvg]);
 
+  const loadSvgIntoWorkspace = useCallback(
+    (svg: string, prompt?: string) => {
+      setState((s) => ({
+        ...s,
+        svg,
+        displaySvg: svg,
+        ...(prompt !== undefined ? { prompt: prompt.trim() || s.prompt } : {}),
+      }));
+    },
+    [],
+  );
+
   const clearError = useCallback(() => {
     setState((s) => ({ ...s, error: null }));
   }, []);
@@ -303,6 +305,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     copySvg,
     downloadSvg,
     downloadSingle,
+    loadSvgIntoWorkspace,
     clearError,
   };
 

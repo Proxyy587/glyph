@@ -43,7 +43,7 @@ export function PackGrid() {
                 onClick={() =>
                   downloadSvg(
                     item.svg!,
-                    item.prompt.replace(/[^a-z0-9-_]/gi, "-").slice(0, 24)
+                    item.prompt.replace(/[^a-z0-9-_]/gi, "-").slice(0, 24),
                   )
                 }
                 className="rounded-md border border-zinc-700 bg-zinc-800/80 px-2 py-1 text-[11px] text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"

@@ -10,7 +10,9 @@ export function LadderRail({ side }: { side: "left" | "right" }) {
           key={i}
           className={[
             "relative w-full flex-1 text-zinc-700/20",
-            side === "left" ? "border-r border-zinc-800/80" : "border-l border-zinc-800/80",
+            side === "left"
+              ? "border-r border-zinc-800/80"
+              : "border-l border-zinc-800/80",
             i !== RUNG_COUNT - 1 ? "border-b border-zinc-800/80" : "",
           ].join(" ")}
           style={{

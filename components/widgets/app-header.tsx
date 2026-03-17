@@ -34,9 +34,7 @@ export function AppHeader({
         </span>
       </div>
 
-      <div className="hidden items-center gap-3 md:flex">
-        {meta}
-      </div>
+      <div className="hidden items-center gap-3 md:flex">{meta}</div>
 
       <div className="flex items-center gap-3">
         {backHref ? (

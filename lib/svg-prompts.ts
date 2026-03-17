@@ -73,7 +73,18 @@ export const EXAMPLE_LIBRARY: ExampleEntry[] = [
     svg: `<svg viewBox="0 0 24 24" fill="none"><path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   },
   {
-    keywords: ["arrow", "direction", "next", "forward", "back", "up", "down", "left", "right", "navigate"],
+    keywords: [
+      "arrow",
+      "direction",
+      "next",
+      "forward",
+      "back",
+      "up",
+      "down",
+      "left",
+      "right",
+      "navigate",
+    ],
     label: "arrow",
     svg: `<svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   },
@@ -103,7 +114,15 @@ export const EXAMPLE_LIBRARY: ExampleEntry[] = [
     svg: `<svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   },
   {
-    keywords: ["lock", "security", "password", "private", "key", "unlock", "safe"],
+    keywords: [
+      "lock",
+      "security",
+      "password",
+      "private",
+      "key",
+      "unlock",
+      "safe",
+    ],
     label: "lock",
     svg: `<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
   },
@@ -177,5 +196,3 @@ RULES:
 - 3–5 bullet points maximum. Be concise.
 - Think in terms of geometry, not art.
 - Assume Lucide/Heroicons visual language: minimal, clean, 1.5px stroke, rounded caps.`;
-
-
