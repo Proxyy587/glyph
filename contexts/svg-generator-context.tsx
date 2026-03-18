@@ -18,6 +18,7 @@ import {
 } from "@/lib/svg-generator-types";
 import { useSession } from "@/lib/authClient";
 import { toast } from "sonner";
+import { getQueryClient } from "@/lib/query-client";
 
 type SvgGeneratorState = {
   mode: "single" | "pack";
@@ -84,6 +85,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SvgGeneratorState>(initialState);
   const router = useRouter();
   const { data: session } = useSession();
+  const queryClient = getQueryClient();
 
   const currentModel =
     SVG_MODELS.find((entry) => entry.id === state.modelId) ?? SVG_MODELS[0];
@@ -154,6 +156,8 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         svg: full,
         displaySvg: "",
       }));
+
+      queryClient.invalidateQueries({ queryKey: ["svg-history"] });
 
       // Lightweight "drawing" animation: progressively reveal SVG markup
       if (typeof window !== "undefined" && full) {
@@ -234,6 +238,8 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         loadingPack: false,
         packResults: (data.packResults as PackItem[]) ?? [],
       }));
+
+      queryClient.invalidateQueries({ queryKey: ["svg-history"] });
     } catch (e) {
       setState((s) => ({
         ...s,
@@ -272,17 +278,14 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     downloadSvg(state.svg, name);
   }, [state.svg, state.prompt, downloadSvg]);
 
-  const loadSvgIntoWorkspace = useCallback(
-    (svg: string, prompt?: string) => {
-      setState((s) => ({
-        ...s,
-        svg,
-        displaySvg: svg,
-        ...(prompt !== undefined ? { prompt: prompt.trim() || s.prompt } : {}),
-      }));
-    },
-    [],
-  );
+  const loadSvgIntoWorkspace = useCallback((svg: string, prompt?: string) => {
+    setState((s) => ({
+      ...s,
+      svg,
+      displaySvg: svg,
+      ...(prompt !== undefined ? { prompt: prompt.trim() || s.prompt } : {}),
+    }));
+  }, []);
 
   const clearError = useCallback(() => {
     setState((s) => ({ ...s, error: null }));

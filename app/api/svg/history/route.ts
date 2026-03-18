@@ -5,7 +5,8 @@ import db from "@/lib/db";
 import { svgGeneration } from "@/lib/db/svg-schema";
 import { eq, desc, and } from "drizzle-orm";
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET() {
   try {
@@ -109,9 +110,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ deleted: true });
   } catch (error) {
     console.error("Failed to delete SVG history item:", error);
-    return NextResponse.json(
-      { error: "Failed to delete" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

@@ -30,7 +30,8 @@ export function downloadSvgAsPng(
         (pngBlob) => {
           URL.revokeObjectURL(url);
           if (!pngBlob) return;
-          const safe = filename.replace(/[^a-z0-9-_]/gi, "-").slice(0, 32) || "icon";
+          const safe =
+            filename.replace(/[^a-z0-9-_]/gi, "-").slice(0, 32) || "icon";
           const pngUrl = URL.createObjectURL(pngBlob);
           const a = document.createElement("a");
           a.href = pngUrl;

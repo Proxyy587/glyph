@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Pixelify_Sans } from "next/font/google";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,10 +42,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Toaster />
-          {children}
+          <QueryProvider>
+            <Toaster />
+            {children}
+          </QueryProvider>
         </ThemeProvider>
-        <Toaster />
       </body>
     </html>
   );

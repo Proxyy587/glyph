@@ -13,7 +13,7 @@ export function GeneratorCanvas() {
   const { mode, svg, displaySvg, loading, packResults, loadingPack } =
     useSvgGenerator();
   const [tab, setTab] = useState<"canvas" | "code">("canvas");
-  // Remove automatic clearing of editedSvg in useEffect
+  // Edited SVG is local and optional (code tab)
   const [editedSvg, setEditedSvg] = useState<string | null>(null);
 
   // Compute activeSvg: if svg changes, this resets unless user is typing
@@ -68,7 +68,7 @@ export function GeneratorCanvas() {
             </div>
 
             {mode === "single" && hasSingleResult && (
-              <div className="inline-flex w-fit rounded-md border border-zinc-800 bg-zinc-900/70 text-[11px] text-zinc-400">
+              <div className="inline-flex w-fit border border-zinc-800 bg-zinc-900/70 text-[11px] text-zinc-400">
                 <button
                   type="button"
                   onClick={() => setTab("canvas")}

@@ -322,7 +322,7 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-    
+
     if (packPrompts.length > 0) {
       let styleTokens = "";
 
@@ -337,7 +337,6 @@ export async function POST(request: Request) {
         1,
       );
 
-      // Extract its style to enforce consistency
       if (firstResult.cleaned) {
         styleTokens = extractStyleTokens(firstResult.cleaned);
       }
