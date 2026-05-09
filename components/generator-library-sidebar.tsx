@@ -439,7 +439,10 @@ export function GeneratorLibrarySidebar() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  downloadSvg(it.svg, safeName(it.prompt, "icon"))
+                                  downloadSvg(
+                                    it.svg,
+                                    safeName(it.prompt, "icon"),
+                                  )
                                 }
                                 className="flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-xs text-zinc-200 hover:bg-zinc-800"
                               >

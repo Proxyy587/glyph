@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
 import { SVG_MODELS, type SvgModelId } from "@/lib/svg-generator-types";
 import { PromptInput } from "@/components/svg-generator/prompt-input";
@@ -8,56 +7,13 @@ import { PackPromptInput } from "@/components/svg-generator/pack-prompt-input";
 import { StylePresets } from "@/components/svg-generator/style-presets";
 import { IconControls } from "@/components/svg-generator/icon-controls";
 import { ModeToggle } from "@/components/svg-generator/mode-toggle";
-
-const EngineSelect = dynamic(
-  async () => {
-    const mod = await import("@/components/ui/select");
-    return function EngineSelectInner({
-      modelId,
-      setModelId,
-    }: {
-      modelId: SvgModelId;
-      setModelId: (id: SvgModelId) => void;
-    }) {
-      const { Select, SelectContent, SelectItem, SelectTrigger } = mod;
-      return (
-        <Select
-          value={modelId}
-          onValueChange={(value) => setModelId(value as SvgModelId)}
-        >
-          <SelectTrigger
-            size="sm"
-            className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
-          >
-            <span>
-              {SVG_MODELS.find((entry) => entry.id === modelId)?.label ??
-                "Choose model"}
-            </span>
-          </SelectTrigger>
-          <SelectContent align="start" className="bg-[#050509] border-zinc-800">
-            {SVG_MODELS.map((entry) => (
-              <SelectItem
-                key={entry.id}
-                value={entry.id}
-                className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-xs text-zinc-200 hover:bg-zinc-900"
-              >
-                <span className="flex flex-col">
-                  <span className="font-medium text-zinc-100">
-                    {entry.label}
-                  </span>
-                  <span className="text-[10px] text-zinc-500">
-                    {entry.hint}
-                  </span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    };
-  },
-  { ssr: false },
-);
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function GeneratorLeftSidebar() {
   const { mode, svg, copied, copySvg, downloadSingle, modelId, setModelId } =
@@ -86,7 +42,35 @@ export function GeneratorLeftSidebar() {
             Engine
           </p>
           <div className="mt-2">
-            <EngineSelect modelId={modelId} setModelId={setModelId} />
+            <Select
+              value={modelId}
+              onValueChange={(value) => setModelId(value as SvgModelId)}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
+              >
+                <SelectValue placeholder="Choose model" />
+              </SelectTrigger>
+              <SelectContent align="start" className="bg-[#0a0a0c] border-zinc-800">
+                {SVG_MODELS.map((entry) => (
+                  <SelectItem
+                    key={entry.id}
+                    value={entry.id}
+                    className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-xs text-zinc-200 hover:text-white"
+                  >
+                    <span className="flex flex-col">
+                      <span className="font-medium text-inherit">
+                        {entry.provider} • {entry.label}
+                      </span>
+                      {/* <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+                        {entry.provider}
+                      </span> */}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <IconControls />

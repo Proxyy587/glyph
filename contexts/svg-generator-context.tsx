@@ -62,7 +62,7 @@ const initialState: SvgGeneratorState = {
   mode: "single",
   prompt: "cloud upload icon",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
-  modelId: "gemini-flash",
+  modelId: "deepseek/deepseek-v3.2",
   style: "outline",
   strokeWidth: 1.5,
   cornerRadius: 0,
@@ -97,8 +97,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       viewBoxSize: state.viewBoxSize,
-      provider: currentModel.provider,
-      model: currentModel.model,
+      model: currentModel.id,
     }),
     [
       state.style,
@@ -106,8 +105,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       state.cornerRadius,
       state.padding,
       state.viewBoxSize,
-      currentModel.provider,
-      currentModel.model,
+      currentModel.id,
     ],
   );
 
@@ -189,7 +187,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [state.prompt, opts, session?.user, router]);
+  }, [state.prompt, opts, session?.user, router, queryClient]);
 
   const generatePack = useCallback(async () => {
     const lines = state.packPrompts
@@ -199,9 +197,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     if (lines.length === 0) return;
 
     if (!session?.user) {
-      if (typeof window !== "undefined") {
-        window.alert("You need to be signed in to generate an icon pack.");
-      }
+      toast.error("You need to be signed in to generate an icon pack.");
       router.push("/sign-in");
       return;
     }
@@ -247,7 +243,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [state.packPrompts, opts, session?.user, router]);
+  }, [state.packPrompts, opts, session?.user, router, queryClient]);
 
   const copySvg = useCallback(async () => {
     if (!state.svg) return;

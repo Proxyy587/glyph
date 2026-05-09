@@ -1,9 +1,8 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { cleanupSvg } from "@/lib/svg-cleanup";
-import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { auth } from "@/lib/auth";
 import db from "@/lib/db";
 import { svgGeneration, type SvgPackItem } from "@/lib/db/svg-schema";
@@ -13,8 +12,14 @@ import {
   AMPLIFIER_PROMPT,
   findRelevantExample,
 } from "@/lib/svg-prompts";
+import {
+  OPENROUTER_FREE_MODELS,
+  type OpenRouterModelId,
+} from "@/lib/openrouter-models";
 
-const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 export interface SvgApiBody {
   prompt: string;
@@ -24,63 +29,9 @@ export interface SvgApiBody {
   padding?: number;
   viewBoxSize?: 16 | 24 | 32;
   packPrompts?: string[];
-  provider?: "openai" | "gemini" | "anthropic";
   model?: string;
 }
 
-// const SYSTEM_PROMPT = `You are a world-class SVG icon engineer. You output ONLY valid SVG markup — no markdown, no code fences, no explanation, no comments outside the SVG.
-
-// ABSOLUTE RULES:
-// - Output a SINGLE <svg> element. Nothing before or after it.
-// - Icons only: simple, recognizable symbols (Lucide / Heroicons / Tabler style). NOT illustrations or realistic art.
-// - NO gradients, NO shadows, NO filters (<filter>), NO <image>, NO <foreignObject>.
-// - NO width or height attributes on the <svg> element.
-// - NO fill="black", stroke="black", fill="white", or any hardcoded colors.
-// - ONLY use stroke="currentColor" and/or fill="currentColor".
-// - NO scripts, NO event handlers, NO <style> blocks.
-// - The <svg> MUST have xmlns="http://www.w3.org/2000/svg" and viewBox="0 0 24 24" (or as specified).
-// - Output valid XML that can be directly inlined in HTML.
-
-// GEOMETRY RULES (24×24 grid):
-// - Center point is always (12, 12).
-// - Standard safe area: x=2 to x=22, y=2 to y=22 (2px padding all sides).
-// - Large shapes: rects from ~(3,3) to ~(21,21). Circles: center (12,12) r=8–10.
-// - Small detail elements: r=2–3 for dots, r=3–4 for small circles.
-// - Horizontal lines: from x=4 or x=5 to x=19 or x=20, centered at y=12.
-// - Bezier control points: typically 4–6px from their anchor point.
-// - Stroke width 1.5 is the standard. NEVER mix stroke widths in a single icon.
-// - ALL shapes must be visually centered — verify the bounding box center ≈ (12, 12).
-// - Use as FEW path nodes as possible. Simpler = better. Max 4–6 paths per icon.
-// - Prefer <path> over multiple <rect>, <circle>, <line> unless those primitives are cleaner.
-// - Rounded corners on rects: use rx="2" as default unless told otherwise.
-
-// QUALITY CHECKLIST before outputting:
-// ✓ Is every path closed correctly (Z where needed)?
-// ✓ Are all coordinates within the 2–22 safe area?
-// ✓ Is the icon visually centered at (12,12)?
-// ✓ Is there only one stroke-width value used?
-// ✓ Does it use currentColor only?
-// ✓ Is it recognizable at 16×16px?
-
-// ${FEW_SHOT_EXAMPLES}`;
-
-// const AMPLIFIER_PROMPT = `You are a senior icon designer who works with developer icon systems like Lucide, Heroicons, and Tabler Icons.
-
-// Your job: take a vague user request and write a PRECISE DESIGN BRIEF that a separate SVG code generator will use.
-
-// Your output must describe:
-// 1. The core concept and the simplest visual metaphor for it
-// 2. Exact shapes needed (e.g. "a rounded rect 4,4 to 20,20" or "circle centered at 12,12 r=8")
-// 3. Stroke style (outline with 1.5px stroke / solid fill), cap and join style
-// 4. Specific details to INCLUDE and details to AVOID (no tiny gaps, no more than 5 paths)
-// 5. How shapes should be composed and centered on a 24×24 grid
-
-// RULES:
-// - Do NOT write any SVG or code whatsoever.
-// - Be specific about coordinates and proportions.
-// - 3–5 bullet points maximum. Be concise.
-// - Think in terms of geometry, not art.
-// - Assume Lucide/Heroicons visual language: minimal, clean, 1.5px stroke, rounded caps.`;
 
 function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   const style = body.style && STYLE_GUIDE[body.style] ? body.style : "outline";
@@ -91,6 +42,10 @@ function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   const padding = body.padding ?? 0;
 
   const relevantExample = findRelevantExample(body.prompt);
+  const isAnimatedRequest =
+    /\b(animated|animation|loading|loader|loop|motion|morph)\b/i.test(
+      body.prompt,
+    );
 
   let spec = `User request: "${body.prompt.trim()}"\n\n`;
   spec += `Design brief from icon designer:\n${designBrief.trim()}\n\n`;
@@ -108,6 +63,12 @@ function buildUserPrompt(body: SvgApiBody, designBrief: string): string {
   spec += `- Stroke width: ${stroke}. Use this value for ALL strokes.\n`;
   if (radius > 0) spec += `- Corner radius: ${radius} for all rect elements.\n`;
   spec += `- Use currentColor only. No hardcoded colors.\n`;
+  if (isAnimatedRequest) {
+    spec += `- This is an animated icon request. Build premium, smooth motion with native SVG animation.\n`;
+    spec += `- Prefer 3-9 geometric blocks/segments with staggered timing and gentle ease curves.\n`;
+    spec += `- Keep loop seamless and lightweight; avoid visual chaos.\n`;
+    spec += `- Optional internal <style> block is allowed only for animation classes/timing.\n`;
+  }
   spec += `\nOutput ONLY the single <svg> element. No explanation, no markdown, no code fences.`;
   return spec;
 }
@@ -116,43 +77,9 @@ async function amplifyPrompt(body: SvgApiBody): Promise<string> {
   const basePrompt = body.prompt?.trim();
   if (!basePrompt) return "";
 
-  const provider = body.provider || "gemini";
-
   try {
-    if (provider === "openai") {
-      const result = await generateText({
-        model: openai("gpt-4o-mini"),
-        system: AMPLIFIER_PROMPT,
-        prompt: basePrompt,
-        temperature: 0.3,
-      });
-      return result.text?.trim() || "";
-    }
-
-    if (provider === "anthropic") {
-      if (
-        !process.env.GEMINI_API_KEY &&
-        !process.env.GOOGLE_GENERATIVE_AI_API_KEY
-      ) {
-        throw new Error("Missing Gemini API key");
-      }
-      const result = await generateText({
-        model: google("gemini-2.5-flash-lite"),
-        system: AMPLIFIER_PROMPT,
-        prompt: basePrompt,
-        temperature: 0.3,
-      });
-      return result.text?.trim() || "";
-    }
-
-    if (
-      !process.env.GEMINI_API_KEY &&
-      !process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    ) {
-      throw new Error("Missing Gemini API key");
-    }
     const result = await generateText({
-      model: google("gemini-2.5-flash-lite"),
+      model: openrouter("openai/gpt-oss-20b:free"),
       system: AMPLIFIER_PROMPT,
       prompt: basePrompt,
       temperature: 0.3,
@@ -164,59 +91,45 @@ async function amplifyPrompt(body: SvgApiBody): Promise<string> {
   }
 }
 
+function resolveOpenRouterModel(requested?: string): OpenRouterModelId {
+  const allowed = new Set<string>(OPENROUTER_FREE_MODELS.map((m) => m.id));
+  if (requested && allowed.has(requested)) return requested as OpenRouterModelId;
+  return OPENROUTER_FREE_MODELS[0].id;
+}
+
 async function generateSingleSvg(body: SvgApiBody) {
-  const provider = body.provider || "gemini";
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error("Missing OPENROUTER_API_KEY");
+  }
+
+  const provider = "openrouter";
   let raw = "";
-  let usedModel = "";
+  const usedModel = resolveOpenRouterModel(body.model);
 
   const designBrief = await amplifyPrompt(body);
   const userPrompt = buildUserPrompt(body, designBrief || body.prompt);
 
-  if (provider === "openai") {
-    if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-    const model = body.model || "gpt-4o";
-    usedModel = model;
-    const completion = await generateText({
-      model: openai(model),
-      system: SYSTEM_PROMPT,
-      prompt: userPrompt,
-      temperature: 0.2,
-    });
-    raw = completion.text ?? "";
-  } else if (provider === "anthropic") {
-    if (
-      !process.env.GEMINI_API_KEY &&
-      !process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    ) {
-      throw new Error("Missing Gemini API key");
-    }
-    const model = body.model || "gemini-2.5-flash";
-    usedModel = model;
+  try {
     const response = await generateText({
-      model: google(model),
+      model: openrouter(usedModel),
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.2,
     });
     raw = response.text ?? "";
-  } else if (provider === "gemini") {
-    if (
-      !process.env.GEMINI_API_KEY &&
-      !process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    ) {
-      throw new Error("Missing Gemini API key");
-    }
-    const model = body.model || "gemini-2.5-flash";
-    usedModel = model;
-    const response = await generateText({
-      model: google(model),
+  } catch (primaryError) {
+    // Fallback router keeps app functional when a chosen free model is temporarily unavailable.
+    const fallback = await generateText({
+      model: openrouter("openrouter/free"),
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.2,
     });
-    raw = response.text ?? "";
-  } else {
-    throw new Error(`Unknown provider: ${provider}`);
+    raw = fallback.text ?? "";
+    console.warn(
+      `[OpenRouter] Primary model failed (${usedModel}), used openrouter/free fallback.`,
+      primaryError,
+    );
   }
 
   const cleaned = cleanupSvg(raw, {
@@ -326,12 +239,8 @@ export async function POST(request: Request) {
     if (packPrompts.length > 0) {
       let styleTokens = "";
 
-      // Generate all icons in parallel for speed
-      // Style lock: inject style tokens from icon #1 into icons #2–N
-      // We do a two-phase approach: first icon alone, rest with style lock
       const [firstPrompt, ...restPrompts] = packPrompts;
 
-      // Generate first icon
       const firstResult = await generateSingleSvgWithRetry(
         { ...body, prompt: firstPrompt, packPrompts: undefined },
         1,
@@ -349,7 +258,6 @@ export async function POST(request: Request) {
             error: `Invalid SVG: ${firstResult.raw.slice(0, 120)}`,
           };
 
-      // Generate remaining icons in parallel, all with style lock
       const restResults = await Promise.all(
         restPrompts.map(async (packPrompt): Promise<SvgPackItem> => {
           try {
@@ -385,7 +293,6 @@ export async function POST(request: Request) {
       const allResults = [firstPackItem, ...restResults];
       const successCount = allResults.filter((r) => r.svg !== null).length;
 
-      // Save to DB
       await db.insert(svgGeneration).values({
         userId: session.user.id,
         prompt: packPrompts.join("\n"),

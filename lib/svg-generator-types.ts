@@ -1,3 +1,8 @@
+import {
+  OPENROUTER_FREE_MODELS,
+  type OpenRouterModelId,
+} from "@/lib/openrouter-models";
+
 export const STYLES = [
   { id: "outline", label: "Outline" },
   { id: "solid", label: "Solid" },
@@ -27,35 +32,6 @@ export type SvgOptions = {
   viewBoxSize: ViewBoxSize;
 };
 
-export const SVG_MODELS = [
-  {
-    id: "gemini-flash",
-    label: "Gemini Flash",
-    provider: "gemini" as const,
-    model: "gemini-2.5-flash-lite",
-    hint: "Fast, cheap, good defaults",
-  },
-  {
-    id: "gemini-pro",
-    label: "Gemini Pro",
-    provider: "gemini" as const,
-    model: "gemini-2.5-pro",
-    hint: "Higher fidelity, slower",
-  },
-  {
-    id: "gpt-4o-mini",
-    label: "GPT-4o mini",
-    provider: "openai" as const,
-    model: "gpt-4o-mini",
-    hint: "Balanced quality/speed",
-  },
-  {
-    id: "gpt-4o",
-    label: "GPT-4o",
-    provider: "openai" as const,
-    model: "gpt-4o",
-    hint: "Maximum quality",
-  },
-] as const;
+export const SVG_MODELS = OPENROUTER_FREE_MODELS;
 
-export type SvgModelId = (typeof SVG_MODELS)[number]["id"];
+export type SvgModelId = OpenRouterModelId;
