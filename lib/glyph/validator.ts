@@ -12,7 +12,6 @@ export function extractSvg(raw: string): string | null {
   let content = raw.trim();
   const codeMatch = content.match(CODE_BLOCK);
   if (codeMatch) content = codeMatch[1].trim();
-  // strip leftover fences
   content = content
     .replace(/^```(?:svg|xml)?\s*/i, "")
     .replace(/```$/i, "")
@@ -31,6 +30,24 @@ function stripUnsafe(svg: string): string {
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
     .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, "");
+}
+
+/** Fix truncated/broken attributes like `stroke-` or `fill=` without value. */
+function repairBrokenAttrs(svg: string): string {
+  return (
+    svg
+      // incomplete attribute names ending with hyphen: stroke- fill-
+      .replace(/\s(?:stroke|fill|stroke-linecap|stroke-linejoin|stroke-width|opacity)-(?=\s|\/|>)/gi, " ")
+      // attribute with equals but no value: stroke= fill=
+      .replace(
+        /\s(stroke|fill|stroke-linecap|stroke-linejoin|stroke-width|opacity|class|id)=(?=[\s/>])/gi,
+        " ",
+      )
+      // empty quoted attrs: stroke=""
+      .replace(/\s(stroke|fill)="\s*"/gi, " ")
+      // duplicate spaces
+      .replace(/\s{2,}/g, " ")
+  );
 }
 
 function ensureXmlns(svg: string): string {
@@ -59,14 +76,12 @@ function applyStroke(svg: string, strokeWidth: number): string {
   out = out.replace(
     /(<(?:path|line|polyline|polygon|circle|ellipse|rect)[^>]*?)(\/?>)/gi,
     (match, open: string, close: string) => {
-      if (!open.includes("stroke=") && !open.includes("fill=")) {
+      const hasStroke = /\bstroke\s*=/.test(open);
+      const hasFill = /\bfill\s*=/.test(open);
+      if (!hasStroke && !hasFill) {
         return `${open} stroke="currentColor" stroke-width="${dec}" stroke-linecap="round" stroke-linejoin="round" fill="none"${close}`;
       }
-      if (
-        open.includes("stroke=") &&
-        !open.includes("stroke-width") &&
-        !open.includes("strokeWidth")
-      ) {
+      if (hasStroke && !/stroke-width/i.test(open)) {
         return `${open} stroke-width="${dec}"${close}`;
       }
       return match;
@@ -87,8 +102,22 @@ function applyCornerRadius(svg: string, radius: number): string {
 }
 
 /**
- * Extract, sanitize, and normalize SVG. Preserves <style> and SMIL animation.
+ * Zero-cost animation fallback when model forgets motion markup.
  */
+export function injectFallbackAnimation(svg: string): string {
+  if (hasAnimationMarkup(svg)) return svg;
+  if (/<style[\s>]/i.test(svg)) {
+    return svg.replace(
+      /<\/style>/i,
+      `@keyframes glyphPulse{0%,100%{opacity:1}50%{opacity:.45}}.glyph-anim{animation:glyphPulse 1.2s ease-in-out infinite}</style>`,
+    );
+  }
+  return svg.replace(
+    /<\/svg>/i,
+    `<style>@keyframes glyphPulse{0%,100%{opacity:1}50%{opacity:.45}}svg>*{animation:glyphPulse 1.2s ease-in-out infinite}</style></svg>`,
+  );
+}
+
 export function validateAndFixSvg(
   raw: string,
   options: ValidateOptions = {},
@@ -98,13 +127,13 @@ export function validateAndFixSvg(
 
   const size = options.viewBoxSize ?? 24;
   let result = stripUnsafe(extracted);
+  result = repairBrokenAttrs(result);
   result = ensureXmlns(result);
   result = ensureViewBox(result, size);
 
   if (options.strokeWidth != null && options.strokeWidth > 0) {
     result = applyStroke(result, options.strokeWidth);
   } else if (options.outline !== false) {
-    // light default for outline icons missing stroke attrs
     result = applyStroke(result, 1.5);
   }
 
@@ -145,5 +174,5 @@ export function extractStyleTokens(svg: string): string {
 
   if (tokens.length === 0) return "";
 
-  return `[PACK CONSISTENCY: This icon is part of a set. You MUST use these exact style values: ${tokens.join(", ")}. Do not deviate.]`;
+  return `[PACK CONSISTENCY: use exact values: ${tokens.join(", ")}]`;
 }

@@ -4,10 +4,15 @@
  */
 export const OPENROUTER_FREE_MODELS = [
   {
-    id: "anthropic/gpt-4o-mini",
+    id: "openai/gpt-4o-mini",
     label: "GPT-4o Mini",
     provider: "OpenAI",
   },
+  // {
+  //   id: "anthropic/claude-sonnet-4",
+  //   label: "Claude Sonnet 4",
+  //   provider: "Anthropic",
+  // },
   {
     id: "openai/gpt-4o",
     label: "GPT-4o",
@@ -33,11 +38,11 @@ export const OPENROUTER_FREE_MODELS = [
     label: "Gemma 4 31B",
     provider: "Google",
   },
-  {
-    id: "z-ai/glm-4.5-air:free",
-    label: "GLM 4.5 Air",
-    provider: "Z.ai",
-  },
+  // {
+  //   id: "z-ai/glm-4.5-air:free",
+  //   label: "GLM 4.5 Air",
+  //   provider: "Z.ai",
+  // },
   {
     id: "minimax/minimax-m2.5:free",
     label: "MiniMax M2.5",

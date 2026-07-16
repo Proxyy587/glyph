@@ -23,12 +23,9 @@ import { toast } from "sonner";
 import { getQueryClient } from "@/lib/query-client";
 
 export const GLYPH_STAGE_LABELS = [
-  "Classifying intent…",
-  "Writing design brief…",
+  "Reading intent…",
   "Drafting geometry…",
-  "Critiquing & refining…",
   "Validating SVG…",
-  "Injecting motion…",
   "Polishing output…",
 ] as const;
 
@@ -75,7 +72,7 @@ const initialState: SvgGeneratorState = {
   mode: "single",
   prompt: "cloud upload icon, outline, rounded caps",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
-  modelId: "anthropic/gpt-4o-mini",
+  modelId: "openai/gpt-4o-mini",
   style: "outline",
   strokeWidth: 1.5,
   cornerRadius: 0,

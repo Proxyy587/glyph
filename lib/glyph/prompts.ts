@@ -1,107 +1,104 @@
-import type { GlyphIntent } from "./classifier";
-import { findRelevantExample } from "./examples";
+// import type { GlyphIntent } from "./classifier";
+import { GlyphIntent } from "./classifier";
+import { GOLDEN_ANCHORS, findRelevantExample } from "./examples";
 
 export const STYLE_GUIDE: Record<string, string> = {
   outline:
-    "Outline style: stroke only, fill='none'. Clean single-weight lines like Lucide or Heroicons. Use stroke='currentColor'.",
-  solid:
-    "Solid style: filled shapes, no stroke. Use fill='currentColor'. Like Phosphor fill or Lucide solid.",
+    "Outline/stroke-only icon. fill=none everywhere. stroke=currentColor. Lucide weight.",
+  solid: "Solid filled icon. fill=currentColor. No strokes.",
   rounded:
-    "Rounded style: stroke outline with stroke-linecap='round' stroke-linejoin='round'. Soft, friendly look.",
+    "Outline with stroke-linecap=round and stroke-linejoin=round. Soft, friendly.",
   sharp:
-    "Sharp style: stroke outline with stroke-linecap='square' stroke-linejoin='miter'. Crisp, technical look.",
+    "Outline with stroke-linecap=square and stroke-linejoin=miter. Crisp, technical.",
   duotone:
-    "Duotone style: two-tone. Main shape uses fill with opacity 0.3–0.4, accent detail uses full fill. Both use currentColor.",
+    "Two layers: primary fill=currentColor opacity=1, secondary fill=currentColor opacity=0.3.",
   animated:
-    "Animated style: start from a clean outline icon, then add premium CSS @keyframes motion inside a <style> block. Keep geometry Lucide-grade.",
+    "Clean Lucide-grade icon PLUS CSS @keyframes in an internal <style> tag. Motion is subtle and looping.",
 };
 
+/**
+ * Elite system prompt — adapted from README.md quality playbook.
+ * This is the primary lever for Lucide-class output.
+ */
 export const GLYPH_SYSTEM_PROMPT = `You are an elite SVG designer and engineer.
 You create pixel-perfect, scalable vector graphics that rival professional icon libraries (Lucide, Heroicons, Tabler).
 
-═══════════════════════════════════════
 CANVAS RULES — NON NEGOTIABLE
-═══════════════════════════════════════
-- viewBox is ALWAYS "0 0 24 24" for icons unless told otherwise ("0 0 100 100" illustrations, "0 0 200 60" logos)
-- NEVER place geometry outside the viewBox bounds
-- ALL coordinates relative to the viewBox
-- Allowed elements: path, circle, rect, line, polyline, polygon, ellipse, g, defs, clipPath, mask,
-  linearGradient, radialGradient, animate, animateTransform, animateMotion, style
-- Forbidden: script, foreignObject, image, event handlers
+- viewBox is ALWAYS "0 0 24 24" for icons, "0 0 100 100" for illustrations, "0 0 200 60" for logos
+- NEVER place coordinates outside the viewBox bounds
+- ALL coordinates must be relative to the viewBox
+- Allowed elements: path, circle, rect, line, polyline, polygon, ellipse, g, defs,
+  clipPath, mask, linearGradient, radialGradient, animate, animateTransform, animateMotion, style
+- Forbidden: script, foreignObject, image, event handlers, comments outside SVG
 
-═══════════════════════════════════════
 STROKE SYSTEM (Lucide-style icons)
-═══════════════════════════════════════
 - stroke="currentColor" on ALL stroked elements — never hardcode colors
-- Prefer stroke-width from the user spec (default 1.5 or 2)
-- stroke-linecap and stroke-linejoin must match the style preset
+- Use the stroke-width from the user spec (typically 1.5 or 2)
+- stroke-linecap="round" on ALL paths and lines (unless sharp style)
+- stroke-linejoin="round" on ALL paths (unless sharp style)
 - fill="none" for outline icons
 - fill="currentColor" for solid — NEVER mix outline+solid in the same icon unless duotone
 
-═══════════════════════════════════════
 PATH QUALITY RULES
-═══════════════════════════════════════
 - Use cubic bezier curves (C/c) for smooth organic shapes
 - Use arc commands (A/a) for circles and rounded corners
 - Minimize path nodes — quality icons use <8 nodes per path when possible
 - Prefer drawing at correct coords over transform="translate(...)" crutches
 - Close paths explicitly with Z when the shape should be closed
+- Every attribute must be complete and valid XML — NEVER output truncated attrs like stroke- or fill=
 
-═══════════════════════════════════════
 DESIGN QUALITY STANDARDS
-═══════════════════════════════════════
-- Optical centering — elements should FEEL centered
-- Consistent padding — 2px minimum from viewBox edges unless told otherwise
+- Optical centering — elements should FEEL centered, not just mathematically
+- Consistent padding — 2px minimum from viewBox edges on all sides
 - Pixel grid alignment — whole or half pixels where possible
 - Visual weight balanced; negative space intentional
 - Icons only: simple recognizable symbols — NOT illustrations or realistic art (unless type is illustration)
+- Prefer 2–6 SVG elements. Simpler = better. Recognizable at 16×16.
 
-═══════════════════════════════════════
 ANIMATION RULES (when requested)
-═══════════════════════════════════════
-Prefer CSS animations in a <style> tag inside the SVG:
-- Assign class or id to animated elements
-- Use @keyframes for complex motion
-- Durations 0.6s–2.4s, smooth easing, seamless loops
-- Patterns: spin, pulse, draw-on (stroke-dashoffset), bounce, staggered blocks
-SMIL (<animate>, <animateTransform>, <animateMotion>) is allowed as secondary.
+Use ONLY CSS animations in a <style> tag inside the SVG:
+- Assign id or class to animated elements
+- Use @keyframes for complex animations
+- Use animation shorthand: animation: name duration easing iteration
+- Durations 0.6s–2.4s, seamless loops, subtle motion
+- Common patterns:
+  * Spin:    rotate(0deg) → rotate(360deg), linear, infinite
+  * Pulse:   opacity 1 → 0.3 → 1, ease-in-out, infinite
+  * Draw:    stroke-dasharray + stroke-dashoffset animation
+  * Bounce:  translateY(0) → translateY(-3px) → translateY(0)
+  * Morph:   multiple paths with crossfade opacity
+SMIL (<animate>, <animateTransform>, <animateMotion>) allowed as secondary.
 No JavaScript. No external assets.
 
-═══════════════════════════════════════
+STYLE VARIANTS — follow user style exactly
+outline   → stroke only, fill=none
+solid     → fill=currentColor, no stroke
+rounded   → outline + round caps/joins
+sharp     → outline + square/miter
+duotone   → two fills, secondary at ~30% opacity
+animated  → base icon + CSS @keyframes
+
 OUTPUT FORMAT
-═══════════════════════════════════════
 Return ONLY the raw SVG code.
-No markdown. No backticks. No explanation. No comments outside the SVG.
+No markdown. No backticks. No explanation. No comments inside SVG.
 Start with <svg and end with </svg>.
 Always include xmlns="http://www.w3.org/2000/svg"`;
 
-export const AMPLIFIER_PROMPT = `You are a senior icon designer who works with Lucide, Heroicons, and Tabler.
+export const AMPLIFIER_PROMPT = `You are a senior icon designer (Lucide / Heroicons / Tabler).
 
-Take a vague user request and write a PRECISE DESIGN BRIEF for an SVG code generator.
+Write a PRECISE geometric design brief for an SVG generator.
+Cover: core metaphor, shapes + approximate 24×24 coords, stroke vs fill, what to include/avoid, centering, and animation intent if needed.
+No SVG code. 3–6 bullets max.`;
 
-Describe:
-1. Core concept and simplest visual metaphor
-2. Exact shapes / approximate coordinates on the target grid
-3. Stroke vs fill, caps and joins
-4. Details to INCLUDE and AVOID (max ~5 paths for simple icons)
-5. Composition and optical centering
-6. If animation is requested: what moves, duration, easing, stagger
+export const CRITIQUE_PROMPT = `Critique this SVG against Lucide quality:
+1. currentColor only?
+2. Correct caps/joins for style?
+3. Coords inside viewBox?
+4. Optically centered?
+5. Paths unnecessarily complex?
+6. If animation requested: subtle CSS loop?
 
-RULES:
-- Do NOT write any SVG or code
-- 3–6 bullet points maximum
-- Think geometry, not art
-- Assume Lucide visual language: minimal, clean, consistent stroke`;
-
-export const CRITIQUE_PROMPT = `Critique the SVG against these checks and output an IMPROVED version:
-1. Are all strokes/fills using currentColor (monochrome)?
-2. Are stroke-linecap / stroke-linejoin correct for the style?
-3. Any coordinates outside the viewBox?
-4. Is it visually balanced and optically centered?
-5. Are paths unnecessarily complex?
-6. If animation was requested: is motion subtle, looping, and CSS/SMIL-only?
-
-Return ONLY the improved raw SVG. No markdown. No explanation.`;
+Return ONLY the improved raw SVG. No markdown.`;
 
 export type GlyphControls = {
   prompt: string;
@@ -139,48 +136,49 @@ export function buildDetailedPrompt(
         : `0 0 ${size} ${size}`;
 
   const complexityInstructions = {
-    simple: "Use minimal paths. Maximum 3–4 SVG elements. Clean and iconic.",
+    simple: "Minimal paths. Max 3–4 SVG elements. Clean and iconic.",
     medium: "Moderate detail. 5–8 elements. Balance simple and complex.",
-    complex: "Rich but still icon-grade. Multiple layers allowed via <g>.",
+    complex: "Rich but still icon-grade. Groups allowed.",
   } as const;
 
   const pad = controls.padding > 0 ? controls.padding : 2;
   const example = findRelevantExample(controls.prompt);
+  const wantsAnim = intent.hasAnimation || styleKey === "animated";
 
   let spec = `Create a ${styleKey} SVG ${intent.type} for: "${controls.prompt.trim()}"\n\n`;
-  spec += `Subject (cleaned): ${intent.subject}\n`;
+  spec += `Subject: ${intent.subject}\n`;
   spec += `ViewBox: ${viewBox}\n`;
   spec += `Style: ${styleDesc}\n`;
   spec += `Complexity: ${complexityInstructions[intent.complexity]}\n`;
-  spec += `Animation needed: ${intent.hasAnimation || styleKey === "animated"}\n\n`;
+  spec += `Animation needed: ${wantsAnim}\n`;
+  spec += `Stroke-width: ${controls.strokeWidth} (use consistently)\n`;
+  spec += `Padding: ${pad}px minimum from all edges\n`;
+  spec += `Color: currentColor only — no hardcoded colors\n`;
+
+  if (controls.cornerRadius > 0) {
+    spec += `Corner radius on rects: ${controls.cornerRadius}\n`;
+  }
+
+  if (wantsAnim) {
+    spec += `\nAnimation: include CSS @keyframes in <style>. Subtle, looping, 0.8–1.6s. Complete attribute names only.\n`;
+  }
 
   if (designBrief.trim()) {
-    spec += `Design brief:\n${designBrief.trim()}\n\n`;
+    spec += `\nDesign brief:\n${designBrief.trim()}\n`;
   }
 
-  if (example) spec += `${example}\n`;
+  spec += `\n${GOLDEN_ANCHORS}\n`;
+  if (example) spec += `\n${example}\n`;
+  if (controls.styleLock) spec += `\n${controls.styleLock}\n`;
 
-  spec += `Icon constraints:\n`;
-  spec += `- Optical center; ${pad}px minimum padding from edges.\n`;
-  spec += `- Stroke width: ${controls.strokeWidth}. Use consistently for ALL strokes.\n`;
-  if (controls.cornerRadius > 0) {
-    spec += `- Corner radius: ${controls.cornerRadius} on rects.\n`;
-  }
-  spec += `- Use currentColor only. No hardcoded colors.\n`;
+  spec += `\nQuality requirements:
+- Every path node intentional
+- Optical balance — visually center the design
+- Smooth curves using cubic beziers where needed
+- Consistent visual weight throughout
+- Recognizable at 16×16
 
-  if (intent.hasAnimation || styleKey === "animated") {
-    spec += `- Add premium CSS @keyframes in an internal <style> block (preferred) or SMIL.\n`;
-    spec += `- Seamless loop, 0.6–2.4s, subtle stagger if multiple blocks.\n`;
-  }
-
-  if (controls.styleLock) {
-    spec += `\n${controls.styleLock}\n`;
-  }
-
-  spec += `\nQuality requirements:\n`;
-  spec += `- Every path node intentional\n`;
-  spec += `- Smooth curves; consistent visual weight\n`;
-  spec += `- Output ONLY the raw SVG. No explanation.\n`;
+Output ONLY the raw <svg>…</svg>. No explanation.`;
 
   return spec;
 }

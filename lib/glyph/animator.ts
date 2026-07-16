@@ -14,7 +14,7 @@ async function runText(
 ): Promise<string> {
   try {
     const { text } = await generateText({
-      model: openrouter(modelId),
+      model: openrouter.chat(modelId),
       system,
       prompt,
       temperature: 0.3,
@@ -26,7 +26,7 @@ async function runText(
       primaryError,
     );
     const { text } = await generateText({
-      model: openrouter(GLYPH_FALLBACK_MODEL),
+      model: openrouter.chat(GLYPH_FALLBACK_MODEL),
       system,
       prompt,
       temperature: 0.3,

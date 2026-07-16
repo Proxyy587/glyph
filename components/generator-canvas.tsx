@@ -50,8 +50,8 @@ export function GeneratorCanvas() {
   };
 
   return (
-    <main className="flex min-w-0 flex-1 items-stretch justify-center bg-[#0b0b0d] px-4 py-5 sm:px-6">
-      <div className="relative flex w-full max-w-5xl flex-1 flex-col overflow-hidden border border-zinc-800/80 bg-[#0d0d10]">
+    <main className="flex min-h-0 min-w-0 flex-1 items-stretch justify-center overflow-hidden bg-[#0b0b0d] px-4 py-5 sm:px-6">
+      <div className="relative flex w-full max-w-5xl min-h-0 flex-1 flex-col overflow-hidden border border-zinc-800/80 bg-[#0d0d10]">
         <div className="border-b border-zinc-800/80 px-5 py-4">
           <div className="flex flex-col gap-3">
             <div>
@@ -213,25 +213,45 @@ export function GeneratorCanvas() {
                       />
                     </div>
 
-                    {/* Multi-size optical QA strip */}
-                    <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-end gap-3 rounded-none border border-zinc-800 bg-[#0a0a0c]/90 px-3 py-2 backdrop-blur">
+                    {/* Multi-size optical QA — moved below canvas */}
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 border-b border-r border-zinc-500/40" />
+                    <span className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b border-l border-zinc-500/40" />
+                    <span className="absolute top-0 right-0 h-2.5 w-2.5 border-t border-r border-zinc-500/40" />
+                    <span className="absolute top-0 left-0 h-2.5 w-2.5 border-t border-l border-zinc-500/40" />
+                  </div>
+                )}
+
+                {!loading && svg && tab === "canvas" && (
+                  <div className="mt-4 flex w-full max-w-[720px] items-center justify-between gap-4 border border-zinc-800/80 bg-[#0a0a0c]/80 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                        Scale check
+                      </p>
+                      <p className="mt-1 text-[11px] text-zinc-600">
+                        Optical clarity from 16 → 64
+                      </p>
+                    </div>
+                    <div className="flex items-end gap-4">
                       {[16, 24, 32, 48, 64].map((size) => (
-                        <div key={size} className="flex flex-col items-center gap-1">
+                        <div
+                          key={size}
+                          className="group flex flex-col items-center gap-1.5"
+                        >
                           <div
-                            className="text-zinc-100 [&_svg]:h-full [&_svg]:w-full"
-                            style={{ width: size, height: size }}
+                            className="flex items-center justify-center border border-zinc-800/80 bg-[#101014] text-zinc-100 transition-colors group-hover:border-zinc-600 [&_svg]:h-full [&_svg]:w-full"
+                            style={{
+                              width: Math.max(size + 12, 28),
+                              height: Math.max(size + 12, 28),
+                              padding: 6,
+                            }}
                             dangerouslySetInnerHTML={{ __html: activeSvg }}
                           />
-                          <span className="text-[9px] tabular-nums text-zinc-600">
+                          <span className="text-[9px] tabular-nums tracking-wide text-zinc-600">
                             {size}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 border-b border-r border-zinc-500/40" />
-                    <span className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b border-l border-zinc-500/40" />
-                    <span className="absolute top-0 right-0 h-2.5 w-2.5 border-t border-r border-zinc-500/40" />
-                    <span className="absolute top-0 left-0 h-2.5 w-2.5 border-t border-l border-zinc-500/40" />
                   </div>
                 )}
 

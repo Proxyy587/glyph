@@ -5,7 +5,11 @@ export {
   type GlyphStage,
 } from "./generator";
 export { STYLE_GUIDE } from "./prompts";
-export { extractStyleTokens, validateAndFixSvg } from "./validator";
+export {
+  extractStyleTokens,
+  validateAndFixSvg,
+  injectFallbackAnimation,
+} from "./validator";
 export {
   GLYPH_CLASSIFY_MODEL,
   GLYPH_FALLBACK_MODEL,

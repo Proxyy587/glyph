@@ -1,96 +1,136 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
+
+/** ASCII frames — procedural glyph assembly (infinite loop). */
+const ASCII_FRAMES = [
+  `
+    ·  ·  ·  ·  ·
+    ·  ·  ·  ·  ·
+    ·  ·  ◆  ·  ·
+    ·  ·  ·  ·  ·
+    ·  ·  ·  ·  ·
+`.trim(),
+  `
+    ·  ·  ·  ·  ·
+    ·  ·  ░  ·  ·
+    ·  ░  ◆  ░  ·
+    ·  ·  ░  ·  ·
+    ·  ·  ·  ·  ·
+`.trim(),
+  `
+    ·  ·  ·  ·  ·
+    ·  ░  ▒  ░  ·
+    ·  ▒  ◆  ▒  ·
+    ·  ░  ▒  ░  ·
+    ·  ·  ·  ·  ·
+`.trim(),
+  `
+    ·  ░  ·  ░  ·
+    ░  ▒  ▓  ▒  ░
+    ·  ▓  ◆  ▓  ·
+    ░  ▒  ▓  ▒  ░
+    ·  ░  ·  ░  ·
+`.trim(),
+  `
+    ░  ▒  ░  ▒  ░
+    ▒  ▓  █  ▓  ▒
+    ░  █  ◆  █  ░
+    ▒  ▓  █  ▓  ▒
+    ░  ▒  ░  ▒  ░
+`.trim(),
+  `
+    ┌─────────────┐
+    │ ░ ▒ ▓ ▒ ░ │
+    │ ▒ ▓ ◆ ▓ ▒ │
+    │ ░ ▒ ▓ ▒ ░ │
+    └─────────────┘
+`.trim(),
+  `
+    ┌─────────────┐
+    │ · ░ ▒ ░ · │
+    │ ░ ▒ ◆ ▒ ░ │
+    │ · ░ ▒ ░ · │
+    └─────────────┘
+`.trim(),
+  `
+    ┌─────────────┐
+    │ · · ░ · · │
+    │ · ░ ◆ ░ · │
+    │ · · ░ · · │
+    └─────────────┘
+`.trim(),
+];
+
+const STATUS_LINES = [
+  "> parsing intent",
+  "> locking stroke tokens",
+  "> drafting vector paths",
+  "> optical centering",
+  "> validating markup",
+  "> polishing output",
+];
 
 export function LoadingSpinner() {
   const { loading, loadingStage } = useSvgGenerator();
+  const [frame, setFrame] = useState(0);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = window.setInterval(() => {
+      setFrame((f) => (f + 1) % ASCII_FRAMES.length);
+      setTick((t) => t + 1);
+    }, 140);
+    return () => window.clearInterval(id);
+  }, [loading]);
 
   if (!loading) return null;
 
+  const status =
+    loadingStage ?? STATUS_LINES[tick % STATUS_LINES.length] ?? STATUS_LINES[0];
+
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative flex h-28 w-28 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset]">
-        <svg
-          viewBox="0 0 120 120"
+    <div className="flex flex-col items-center gap-5">
+      <div className="relative w-[min(100%,280px)] border border-zinc-800 bg-[#050509] px-4 py-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-zinc-600">
+          <span>glyph // synth</span>
+          <span className="tabular-nums text-zinc-500">
+            {String((tick % 99) + 1).padStart(2, "0")}
+          </span>
+        </div>
+
+        <pre
           aria-hidden="true"
-          className="h-full w-full text-zinc-100"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+          className="overflow-hidden font-mono text-[11px] leading-[1.35] text-zinc-200 sm:text-[12px]"
         >
-          <rect
-            x="18"
-            y="18"
-            width="84"
-            height="84"
-            rx="14"
-            stroke="currentColor"
-            strokeOpacity="0.14"
+          {ASCII_FRAMES[frame]}
+        </pre>
+
+        <div className="mt-4 flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse bg-zinc-100" />
+          <p className="font-mono text-[11px] tracking-wide text-zinc-400">
+            {status}
+          </p>
+        </div>
+
+        <div className="mt-3 h-px w-full overflow-hidden bg-zinc-900">
+          <div
+            className="h-full bg-zinc-400/80 transition-[width] duration-150 ease-out"
+            style={{ width: `${12 + ((tick * 7) % 88)}%` }}
           />
+        </div>
 
-          <g opacity="0.95">
-            <rect x="28" y="28" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="28;46;64;46;28" dur="2.4s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="28;28;46;64;64" dur="2.4s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.35;0.7;1;0.7;0.35" dur="2.4s" repeatCount="indefinite" />
-            </rect>
-            <rect x="46" y="28" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="46;64;64;46;46" dur="2.4s" begin="0.08s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="28;28;46;64;46" dur="2.4s" begin="0.08s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.3;0.55;0.95;0.55;0.3" dur="2.4s" begin="0.08s" repeatCount="indefinite" />
-            </rect>
-            <rect x="64" y="28" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="64;64;46;28;46" dur="2.4s" begin="0.16s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="28;46;64;64;46" dur="2.4s" begin="0.16s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.25;0.5;0.9;0.5;0.25" dur="2.4s" begin="0.16s" repeatCount="indefinite" />
-            </rect>
-            <rect x="28" y="46" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="28;28;46;64;64" dur="2.4s" begin="0.24s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="46;64;64;46;28" dur="2.4s" begin="0.24s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.25;0.45;0.85;0.45;0.25" dur="2.4s" begin="0.24s" repeatCount="indefinite" />
-            </rect>
-            <rect x="46" y="46" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="46;64;46;28;46" dur="2.4s" begin="0.32s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="46;46;64;46;28" dur="2.4s" begin="0.32s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.4;0.75;1;0.75;0.4" dur="2.4s" begin="0.32s" repeatCount="indefinite" />
-            </rect>
-            <rect x="64" y="46" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="64;46;28;46;64" dur="2.4s" begin="0.4s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="46;64;64;46;28" dur="2.4s" begin="0.4s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.28;0.55;0.9;0.55;0.28" dur="2.4s" begin="0.4s" repeatCount="indefinite" />
-            </rect>
-            <rect x="28" y="64" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="28;46;64;64;46" dur="2.4s" begin="0.48s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="64;64;46;28;28" dur="2.4s" begin="0.48s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.25;0.45;0.82;0.45;0.25" dur="2.4s" begin="0.48s" repeatCount="indefinite" />
-            </rect>
-            <rect x="46" y="64" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="46;28;28;46;64" dur="2.4s" begin="0.56s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="64;46;28;28;46" dur="2.4s" begin="0.56s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.3;0.6;0.92;0.6;0.3" dur="2.4s" begin="0.56s" repeatCount="indefinite" />
-            </rect>
-            <rect x="64" y="64" width="12" height="12" rx="2" fill="currentColor">
-              <animate attributeName="x" values="64;64;46;28;28" dur="2.4s" begin="0.64s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="y" values="64;46;28;28;46" dur="2.4s" begin="0.64s" repeatCount="indefinite" keyTimes="0;0.25;0.5;0.75;1" />
-              <animate attributeName="opacity" values="0.22;0.5;0.85;0.5;0.22" dur="2.4s" begin="0.64s" repeatCount="indefinite" />
-            </rect>
-          </g>
+        <span className="absolute top-0 left-0 h-2 w-2 border-t border-l border-zinc-600/50" />
+        <span className="absolute top-0 right-0 h-2 w-2 border-t border-r border-zinc-600/50" />
+        <span className="absolute bottom-0 left-0 h-2 w-2 border-b border-l border-zinc-600/50" />
+        <span className="absolute right-0 bottom-0 h-2 w-2 border-b border-r border-zinc-600/50" />
+      </div>
 
-          <path d="M34 60H86" stroke="currentColor" strokeOpacity="0.16" strokeWidth="2" strokeLinecap="round">
-            <animate attributeName="stroke-opacity" values="0.05;0.28;0.05" dur="2.4s" repeatCount="indefinite" />
-          </path>
-          <path d="M60 34V86" stroke="currentColor" strokeOpacity="0.16" strokeWidth="2" strokeLinecap="round">
-            <animate attributeName="stroke-opacity" values="0.28;0.05;0.28" dur="2.4s" repeatCount="indefinite" />
-          </path>
-        </svg>
-      </div>
-      <div className="space-y-1 text-center">
-        <p className="text-xs font-medium tracking-wide text-zinc-300">
-          {loadingStage ?? "Assembling vector intelligence…"}
-        </p>
-        <p className="text-[11px] text-zinc-500">
-          Glyph Engine · classify → draft → critique → polish
-        </p>
-      </div>
+      <p className="max-w-[240px] text-center text-[11px] leading-5 text-zinc-600">
+        Assembling Lucide-grade geometry · one pass
+      </p>
     </div>
   );
 }

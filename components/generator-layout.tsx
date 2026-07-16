@@ -12,17 +12,17 @@ import { GeneratorHeaderMeta } from "./generator-header";
 export function GeneratorLayout() {
   return (
     <SvgGeneratorProvider>
-      <div className="dark flex min-h-screen flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
-        <div className="mx-auto flex w-full max-w-7xl flex-col border-x border-zinc-800/80">
+      <div className="dark flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
+        <div className="mx-auto w-full max-w-7xl shrink-0 border-x border-zinc-800/80">
           <AppHeader meta={<GeneratorHeaderMeta />} />
         </div>
 
-        <div className="min-h-0 flex-1 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,80rem)_minmax(0,1fr)]">
+        <div className="min-h-0 flex-1 overflow-hidden xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,80rem)_minmax(0,1fr)]">
           <aside className="pointer-events-none hidden xl:flex pr-[18%]">
             <LadderRail side="left" />
           </aside>
 
-          <section className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 border-x border-zinc-800/80">
+          <section className="mx-auto flex h-full min-h-0 w-full max-w-7xl overflow-hidden border-x border-zinc-800/80">
             <GeneratorLeftSidebar />
             <GeneratorCanvas />
             <GeneratorLibrarySidebar />
@@ -33,7 +33,7 @@ export function GeneratorLayout() {
           </aside>
         </div>
 
-        <div className="mx-auto flex w-full max-w-7xl flex-col border-x border-zinc-800/80">
+        <div className="mx-auto w-full max-w-7xl shrink-0 border-x border-zinc-800/80">
           <GeneratorBottomBar />
         </div>
       </div>

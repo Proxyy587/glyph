@@ -1,27 +1,27 @@
 import { generateText } from "ai";
-import { injectAnimation } from "./animator";
 import { classifyIntent, type GlyphIntent } from "./classifier";
+import { buildLocalBrief } from "./examples";
 import { optimizeSvg } from "./optimizer";
 import {
-  AMPLIFIER_PROMPT,
   buildDetailedPrompt,
-  CRITIQUE_PROMPT,
   GLYPH_SYSTEM_PROMPT,
   type GlyphControls,
 } from "./prompts";
 import {
-  GLYPH_CLASSIFY_MODEL,
   GLYPH_FALLBACK_MODEL,
   openrouter,
   resolveGenerateModel,
 } from "./provider";
-import { hasAnimationMarkup, validateAndFixSvg } from "./validator";
+import {
+  hasAnimationMarkup,
+  injectFallbackAnimation,
+  validateAndFixSvg,
+} from "./validator";
 
 export type GlyphStage =
   | "classify"
   | "brief"
   | "generate"
-  | "critique"
   | "validate"
   | "animate"
   | "optimize";
@@ -41,21 +41,23 @@ async function generateWithFallback(
   prompt: string,
   temperature = 0.2,
 ): Promise<{ text: string; model: string }> {
+  const primary = modelId.trim();
   try {
     const { text } = await generateText({
-      model: openrouter(modelId),
+      // Explicit chat() so the UI-selected OpenRouter model is used correctly
+      model: openrouter.chat(primary),
       system,
       prompt,
       temperature,
     });
-    return { text: text ?? "", model: modelId };
+    return { text: text ?? "", model: primary };
   } catch (primaryError) {
     console.warn(
-      `[glyph] model ${modelId} failed, using fallback ${GLYPH_FALLBACK_MODEL}:`,
+      `[glyph] model ${primary} failed, using fallback ${GLYPH_FALLBACK_MODEL}:`,
       primaryError,
     );
     const { text } = await generateText({
-      model: openrouter(GLYPH_FALLBACK_MODEL),
+      model: openrouter.chat(GLYPH_FALLBACK_MODEL),
       system,
       prompt,
       temperature,
@@ -64,24 +66,14 @@ async function generateWithFallback(
   }
 }
 
-async function amplifyBrief(prompt: string): Promise<string> {
-  try {
-    const { text } = await generateText({
-      model: openrouter(GLYPH_CLASSIFY_MODEL),
-      system: AMPLIFIER_PROMPT,
-      prompt,
-      temperature: 0.3,
-    });
-    return text?.trim() || "";
-  } catch (error) {
-    console.warn("[amplifyBrief] failed:", error);
-    return "";
-  }
-}
-
+/**
+ * Cost-lean Glyph pipeline:
+ *   heuristic classify → local brief → ONE generate call → validate → optimize
+ * Optional LLM critique/animate disabled by default (showcase budget).
+ */
 export async function generateGlyph(
   controls: GlyphControls,
-  options?: { model?: string; skipCritique?: boolean },
+  options?: { model?: string },
 ): Promise<GenerateGlyphResult> {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("Missing OPENROUTER_API_KEY");
@@ -89,18 +81,17 @@ export async function generateGlyph(
 
   const stages: GlyphStage[] = [];
   const generateModel = resolveGenerateModel(options?.model);
-  let usedModel = generateModel;
 
   stages.push("classify");
-  const intent = await classifyIntent(controls.prompt, controls.style);
+  const intent = classifyIntent(controls.prompt, controls.style);
 
   stages.push("brief");
-  const designBrief = await amplifyBrief(controls.prompt);
-  const detailedPrompt = buildDetailedPrompt(
-    controls,
+  const designBrief = buildLocalBrief(
+    controls.prompt,
     intent,
-    designBrief || controls.prompt,
+    controls.style,
   );
+  const detailedPrompt = buildDetailedPrompt(controls, intent, designBrief);
 
   stages.push("generate");
   const draft = await generateWithFallback(
@@ -109,22 +100,8 @@ export async function generateGlyph(
     detailedPrompt,
     0.2,
   );
-  usedModel = draft.model;
-  let raw = draft.text;
-
-  if (!options?.skipCritique) {
-    stages.push("critique");
-    const refined = await generateWithFallback(
-      usedModel === GLYPH_FALLBACK_MODEL ? GLYPH_FALLBACK_MODEL : generateModel,
-      GLYPH_SYSTEM_PROMPT,
-      `${CRITIQUE_PROMPT}\n\nUser request: "${controls.prompt}"\nStyle: ${controls.style}\n\nSVG to improve:\n${raw}`,
-      0.15,
-    );
-    usedModel = refined.model;
-    if (refined.text.includes("<svg")) {
-      raw = refined.text;
-    }
-  }
+  const usedModel = draft.model;
+  const raw = draft.text;
 
   stages.push("validate");
   let svg = validateAndFixSvg(raw, {
@@ -141,23 +118,21 @@ export async function generateGlyph(
 
   if (svg && needsAnimation && !hasAnimationMarkup(svg)) {
     stages.push("animate");
-    const animated = await injectAnimation(
-      svg,
-      controls.prompt,
-      options?.model,
-    );
-    svg =
-      validateAndFixSvg(animated, {
-        viewBoxSize: controls.viewBoxSize,
-        strokeWidth: controls.strokeWidth,
-        cornerRadius: controls.cornerRadius,
-        outline: controls.style !== "solid",
-      }) ?? animated;
+    // Zero-cost deterministic fallback — no second LLM call
+    svg = injectFallbackAnimation(svg);
   }
 
   if (svg) {
     stages.push("optimize");
     svg = optimizeSvg(svg);
+    // Re-validate after SVGO in case it choked earlier on broken attrs
+    svg =
+      validateAndFixSvg(svg, {
+        viewBoxSize: controls.viewBoxSize,
+        strokeWidth: controls.strokeWidth,
+        cornerRadius: controls.cornerRadius,
+        outline: controls.style !== "solid",
+      }) ?? svg;
   }
 
   return {

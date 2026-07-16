@@ -20,8 +20,8 @@ export function GeneratorLeftSidebar() {
     useSvgGenerator();
 
   return (
-    <aside className="flex w-[290px] shrink-0 flex-col border-r border-zinc-800/80 bg-[#0a0a0c]">
-      <div className="border-b border-zinc-800/80 px-4 py-4">
+    <aside className="flex h-full min-h-0 w-[290px] shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-[#0a0a0c]">
+      <div className="shrink-0 border-b border-zinc-800/80 px-4 py-4">
         <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
           Design
         </p>
@@ -29,12 +29,13 @@ export function GeneratorLeftSidebar() {
           Tune before generating a clean SVG.
         </p>
       </div>
-      <div className="flex">
-        <div className="w-full">
-          <ModeToggle />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex">
+          <div className="w-full">
+            <ModeToggle />
+          </div>
         </div>
-      </div>
-      <div className="flex flex-1 flex-col px-4 py-4">
+        <div className="flex flex-1 flex-col px-4 py-4">
         {mode === "single" ? <PromptInput /> : <PackPromptInput />}
         <StylePresets />
         <div className="mt-4">
@@ -105,6 +106,7 @@ export function GeneratorLeftSidebar() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </aside>
   );

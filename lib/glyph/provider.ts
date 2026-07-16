@@ -4,16 +4,19 @@ export const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+/** Unused for LLM now — kept for env compatibility. Classification is heuristic. */
 export const GLYPH_CLASSIFY_MODEL =
   process.env.GLYPH_CLASSIFY_MODEL ?? "openai/gpt-oss-20b:free";
 
+/** Default generate model — cheap + capable for showcase budgets. */
 export const GLYPH_GENERATE_MODEL =
-  process.env.GLYPH_GENERATE_MODEL ?? "anthropic/gpt-4o-mini";
+  process.env.GLYPH_GENERATE_MODEL ?? "openai/gpt-4o-mini";
 
 export const GLYPH_FALLBACK_MODEL =
   process.env.GLYPH_FALLBACK_MODEL ?? "openrouter/free";
 
 export function resolveGenerateModel(requested?: string): string {
-  if (requested?.trim()) return requested.trim();
+  const id = requested?.trim();
+  if (id) return id;
   return GLYPH_GENERATE_MODEL;
 }
