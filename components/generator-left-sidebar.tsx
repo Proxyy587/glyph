@@ -52,7 +52,10 @@ export function GeneratorLeftSidebar() {
               >
                 <SelectValue placeholder="Choose model" />
               </SelectTrigger>
-              <SelectContent align="start" className="bg-[#0a0a0c] border-zinc-800">
+              <SelectContent
+                align="start"
+                className="bg-[#0a0a0c] border-zinc-800"
+              >
                 {SVG_MODELS.map((entry) => (
                   <SelectItem
                     key={entry.id}

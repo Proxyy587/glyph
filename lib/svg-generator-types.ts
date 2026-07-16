@@ -9,6 +9,7 @@ export const STYLES = [
   { id: "rounded", label: "Rounded" },
   { id: "sharp", label: "Sharp" },
   { id: "duotone", label: "Duotone" },
+  { id: "animated", label: "Animated" },
 ] as const;
 
 export type StyleId = (typeof STYLES)[number]["id"];

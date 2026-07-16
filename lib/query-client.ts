@@ -1,7 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
 declare global {
-   
   var __glyphQueryClient: QueryClient | undefined;
 }
 
