@@ -1,9 +1,5 @@
 import { generateText } from "ai";
-import {
-  GLYPH_FALLBACK_MODEL,
-  openrouter,
-  resolvePlanModel,
-} from "./provider";
+import { GLYPH_FALLBACK_MODEL, openrouter, resolvePlanModel } from "./provider";
 import { getSubjectHint } from "./subjects";
 
 export const VISUAL_PLANNER_SYSTEM = `You are an SVG layout planner for 24×24 icons.
