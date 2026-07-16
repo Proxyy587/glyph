@@ -37,7 +37,10 @@ function repairBrokenAttrs(svg: string): string {
   return (
     svg
       // incomplete attribute names ending with hyphen: stroke- fill-
-      .replace(/\s(?:stroke|fill|stroke-linecap|stroke-linejoin|stroke-width|opacity)-(?=\s|\/|>)/gi, " ")
+      .replace(
+        /\s(?:stroke|fill|stroke-linecap|stroke-linejoin|stroke-width|opacity)-(?=\s|\/|>)/gi,
+        " ",
+      )
       // attribute with equals but no value: stroke= fill=
       .replace(
         /\s(stroke|fill|stroke-linecap|stroke-linejoin|stroke-width|opacity|class|id)=(?=[\s/>])/gi,

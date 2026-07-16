@@ -8,9 +8,14 @@ export const OPENROUTER_FREE_MODELS = [
     label: "GPT-4o Mini",
     provider: "OpenAI",
   },
+  {
+    id: "anthropic/claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    provider: "Anthropic",
+  },
   // {
-  //   id: "anthropic/claude-sonnet-4",
-  //   label: "Claude Sonnet 4",
+  //   id: "anthropic/claude-fable-5",
+  //   label: "Im going broke",
   //   provider: "Anthropic",
   // },
   {

@@ -1,5 +1,4 @@
-// import type { GlyphIntent } from "./classifier";
-import { GlyphIntent } from "./classifier";
+import type { GlyphIntent } from "./classifier";
 import { GOLDEN_ANCHORS, findRelevantExample } from "./examples";
 
 export const STYLE_GUIDE: Record<string, string> = {
@@ -16,89 +15,44 @@ export const STYLE_GUIDE: Record<string, string> = {
     "Clean Lucide-grade icon PLUS CSS @keyframes in an internal <style> tag. Motion is subtle and looping.",
 };
 
-/**
- * Elite system prompt — adapted from README.md quality playbook.
- * This is the primary lever for Lucide-class output.
- */
 export const GLYPH_SYSTEM_PROMPT = `You are an elite SVG designer and engineer.
 You create pixel-perfect, scalable vector graphics that rival professional icon libraries (Lucide, Heroicons, Tabler).
 
+CRITICAL: When a VISUAL PLAN is provided, you MUST follow it. Draw that subject — every listed part.
+Do NOT replace the subject with abstract circles, grids, or decorative geometry.
+
 CANVAS RULES — NON NEGOTIABLE
-- viewBox is ALWAYS "0 0 24 24" for icons, "0 0 100 100" for illustrations, "0 0 200 60" for logos
+- viewBox is ALWAYS "0 0 24 24" for icons unless told otherwise
 - NEVER place coordinates outside the viewBox bounds
-- ALL coordinates must be relative to the viewBox
-- Allowed elements: path, circle, rect, line, polyline, polygon, ellipse, g, defs,
-  clipPath, mask, linearGradient, radialGradient, animate, animateTransform, animateMotion, style
-- Forbidden: script, foreignObject, image, event handlers, comments outside SVG
+- Allowed: path, circle, rect, line, polyline, polygon, ellipse, g, defs, clipPath, mask,
+  linearGradient, radialGradient, animate, animateTransform, animateMotion, style
+- Forbidden: script, foreignObject, image, event handlers
 
-STROKE SYSTEM (Lucide-style icons)
-- stroke="currentColor" on ALL stroked elements — never hardcode colors
-- Use the stroke-width from the user spec (typically 1.5 or 2)
-- stroke-linecap="round" on ALL paths and lines (unless sharp style)
-- stroke-linejoin="round" on ALL paths (unless sharp style)
-- fill="none" for outline icons
-- fill="currentColor" for solid — NEVER mix outline+solid in the same icon unless duotone
+STROKE SYSTEM
+- stroke="currentColor" / fill="currentColor" only — never hardcode colors
+- Use the user stroke-width consistently
+- Outline: fill="none". Solid: fill only. Duotone: two opacities of currentColor.
+- Caps/joins match style (round unless sharp)
 
-PATH QUALITY RULES
-- Use cubic bezier curves (C/c) for smooth organic shapes
-- Use arc commands (A/a) for circles and rounded corners
-- Minimize path nodes — quality icons use <8 nodes per path when possible
-- Prefer drawing at correct coords over transform="translate(...)" crutches
-- Close paths explicitly with Z when the shape should be closed
-- Every attribute must be complete and valid XML — NEVER output truncated attrs like stroke- or fill=
+PATH QUALITY
+- Minimize nodes; prefer intentional geometry
+- Close filled shapes with Z
+- Complete valid XML attributes only — never truncated attrs like stroke-
 
-DESIGN QUALITY STANDARDS
-- Optical centering — elements should FEEL centered, not just mathematically
-- Consistent padding — 2px minimum from viewBox edges on all sides
-- Pixel grid alignment — whole or half pixels where possible
-- Visual weight balanced; negative space intentional
-- Icons only: simple recognizable symbols — NOT illustrations or realistic art (unless type is illustration)
-- Prefer 2–6 SVG elements. Simpler = better. Recognizable at 16×16.
+DESIGN QUALITY
+- Optically centered; 2px padding; recognizable at 16×16
+- Prefer 3–8 elements that READ AS THE SUBJECT
 
-ANIMATION RULES (when requested)
-Use ONLY CSS animations in a <style> tag inside the SVG:
-- Assign id or class to animated elements
-- Use @keyframes for complex animations
-- Use animation shorthand: animation: name duration easing iteration
-- Durations 0.6s–2.4s, seamless loops, subtle motion
-- Common patterns:
-  * Spin:    rotate(0deg) → rotate(360deg), linear, infinite
-  * Pulse:   opacity 1 → 0.3 → 1, ease-in-out, infinite
-  * Draw:    stroke-dasharray + stroke-dashoffset animation
-  * Bounce:  translateY(0) → translateY(-3px) → translateY(0)
-  * Morph:   multiple paths with crossfade opacity
-SMIL (<animate>, <animateTransform>, <animateMotion>) allowed as secondary.
-No JavaScript. No external assets.
+ANIMATION (when requested)
+CSS <style> + @keyframes preferred. 0.6–2.4s seamless loops. Subtle.
 
-STYLE VARIANTS — follow user style exactly
-outline   → stroke only, fill=none
-solid     → fill=currentColor, no stroke
-rounded   → outline + round caps/joins
-sharp     → outline + square/miter
-duotone   → two fills, secondary at ~30% opacity
-animated  → base icon + CSS @keyframes
+OUTPUT
+ONLY raw SVG. No markdown. No backticks. No explanation.
+Start with <svg xmlns="http://www.w3.org/2000/svg" …> and end with </svg>.`;
 
-OUTPUT FORMAT
-Return ONLY the raw SVG code.
-No markdown. No backticks. No explanation. No comments inside SVG.
-Start with <svg and end with </svg>.
-Always include xmlns="http://www.w3.org/2000/svg"`;
+export const AMPLIFIER_PROMPT = `Write a short geometric design brief. No SVG. 3–5 bullets.`;
 
-export const AMPLIFIER_PROMPT = `You are a senior icon designer (Lucide / Heroicons / Tabler).
-
-Write a PRECISE geometric design brief for an SVG generator.
-Cover: core metaphor, shapes + approximate 24×24 coords, stroke vs fill, what to include/avoid, centering, and animation intent if needed.
-No SVG code. 3–6 bullets max.`;
-
-export const CRITIQUE_PROMPT = `Critique this SVG against Lucide quality:
-1. currentColor only?
-2. Correct caps/joins for style?
-3. Coords inside viewBox?
-4. Optically centered?
-5. Paths unnecessarily complex?
-6. If animation requested: subtle CSS loop?
-
-Return ONLY the improved raw SVG. No markdown.`;
+export const CRITIQUE_PROMPT = `Improve the SVG for Lucide quality and subject fidelity. Return ONLY raw SVG.`;
 
 export type GlyphControls = {
   prompt: string;
@@ -113,7 +67,7 @@ export type GlyphControls = {
 export function buildDetailedPrompt(
   controls: GlyphControls,
   intent: GlyphIntent,
-  designBrief: string,
+  visualPlan: string,
 ): string {
   const styleKey =
     controls.style && STYLE_GUIDE[controls.style]
@@ -137,48 +91,43 @@ export function buildDetailedPrompt(
 
   const complexityInstructions = {
     simple: "Minimal paths. Max 3–4 SVG elements. Clean and iconic.",
-    medium: "Moderate detail. 5–8 elements. Balance simple and complex.",
-    complex: "Rich but still icon-grade. Groups allowed.",
+    medium: "Moderate detail. 5–8 elements.",
+    complex: "Rich but still icon-grade.",
   } as const;
 
   const pad = controls.padding > 0 ? controls.padding : 2;
   const example = findRelevantExample(controls.prompt);
   const wantsAnim = intent.hasAnimation || styleKey === "animated";
 
-  let spec = `Create a ${styleKey} SVG ${intent.type} for: "${controls.prompt.trim()}"\n\n`;
-  spec += `Subject: ${intent.subject}\n`;
+  let spec = `Draw a clean SVG icon.\n\n`;
+  spec += `SUBJECT: "${controls.prompt.trim()}"\n`;
+  spec += `The icon MUST be recognizable as this subject. Do not invent unrelated abstract shapes.\n\n`;
+
+  if (visualPlan.trim()) {
+    spec += `═══════════════════════════════════════\n`;
+    spec += `VISUAL PLAN — FOLLOW THIS EXACTLY\n`;
+    spec += `═══════════════════════════════════════\n`;
+    spec += `${visualPlan.trim()}\n\n`;
+  }
+
   spec += `ViewBox: ${viewBox}\n`;
   spec += `Style: ${styleDesc}\n`;
   spec += `Complexity: ${complexityInstructions[intent.complexity]}\n`;
-  spec += `Animation needed: ${wantsAnim}\n`;
-  spec += `Stroke-width: ${controls.strokeWidth} (use consistently)\n`;
-  spec += `Padding: ${pad}px minimum from all edges\n`;
-  spec += `Color: currentColor only — no hardcoded colors\n`;
-
+  spec += `Stroke-width: ${controls.strokeWidth}\n`;
+  spec += `Padding: ${pad}px from edges\n`;
+  spec += `Color: currentColor only (use opacity for belly/secondary parts)\n`;
   if (controls.cornerRadius > 0) {
     spec += `Corner radius on rects: ${controls.cornerRadius}\n`;
   }
-
   if (wantsAnim) {
-    spec += `\nAnimation: include CSS @keyframes in <style>. Subtle, looping, 0.8–1.6s. Complete attribute names only.\n`;
-  }
-
-  if (designBrief.trim()) {
-    spec += `\nDesign brief:\n${designBrief.trim()}\n`;
+    spec += `Animation: CSS @keyframes in <style>, subtle loop 0.8–1.6s\n`;
   }
 
   spec += `\n${GOLDEN_ANCHORS}\n`;
   if (example) spec += `\n${example}\n`;
   if (controls.styleLock) spec += `\n${controls.styleLock}\n`;
 
-  spec += `\nQuality requirements:
-- Every path node intentional
-- Optical balance — visually center the design
-- Smooth curves using cubic beziers where needed
-- Consistent visual weight throughout
-- Recognizable at 16×16
-
-Output ONLY the raw <svg>…</svg>. No explanation.`;
+  spec += `\nOutput ONLY the raw <svg>…</svg>.`;
 
   return spec;
 }

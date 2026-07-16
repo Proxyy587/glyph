@@ -24,7 +24,8 @@ import { getQueryClient } from "@/lib/query-client";
 
 export const GLYPH_STAGE_LABELS = [
   "Reading intent…",
-  "Drafting geometry…",
+  "Planning geometry…",
+  "Drafting vector paths…",
   "Validating SVG…",
   "Polishing output…",
 ] as const;

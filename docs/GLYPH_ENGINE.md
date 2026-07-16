@@ -13,14 +13,13 @@ Glyph is designed to be **cheap by default**:
 | Stage | Method | LLM cost |
 | ----- | ------ | -------- |
 | Classify | Heuristic (no LLM) | $0 |
-| Design brief | Local template | $0 |
-| Generate | **1×** OpenRouter call | paid/free model |
+| Visual plan | Curated subject DB **or** cheap planner | $0 or ~1 cheap call |
+| Generate | Selected model + VISUAL PLAN | 1 call |
 | Validate / repair | Deterministic | $0 |
 | Animation fallback | Deterministic CSS | $0 |
 | SVGO | Local | $0 |
 
-**Default: 1 LLM call per icon.**  
-Critique + LLM animation injector are disabled by default to keep showcase costs low.
+**Typical:** 1 call for known subjects (linux, github, react…), 2 calls otherwise.
 
 Recommended models:
 
@@ -60,18 +59,24 @@ User prompt + UI controls
     ↓
 1. Heuristic intent (free)
     ↓
-2. Local design brief (free)
+2. Visual plan
+     ├─ curated subject DB match? → free instant recipe (linux/tux, github, react…)
+     └─ else → cheap LLM planner (gpt-4o-mini) describes shapes + coords
     ↓
-3. Generate SVG — ONE model call
+3. Generate SVG with selected model — VISUAL PLAN injected front-and-center
     ↓
-4. Validate + repair broken attrs
+4. Validate + repair
     ↓
 5. Deterministic animation fallback (if needed)
     ↓
-6. SVGO (preserve viewBox + style)
-    ↓
-Clean SVG → API → canvas
+6. SVGO
 ```
+
+**Why plan-then-draw:** LLMs lack visual memory. Without an explicit geometric recipe, “linux penguin” collapses into abstract circles. The plan step forces concrete parts (head, belly, beak, feet) before drawing.
+
+**Cost:** curated subjects = 1 LLM call. Unknown subjects = 2 calls (cheap plan + draw).
+
+Env: `GLYPH_PLAN_MODEL` (default `openai/gpt-4o-mini`), `GLYPH_GENERATE_MODEL`.
 
 ---
 

@@ -36,77 +36,77 @@ export function GeneratorLeftSidebar() {
           </div>
         </div>
         <div className="flex flex-1 flex-col px-4 py-4">
-        {mode === "single" ? <PromptInput /> : <PackPromptInput />}
-        <StylePresets />
-        <div className="mt-4">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
-            Engine
-          </p>
-          <div className="mt-2">
-            <Select
-              value={modelId}
-              onValueChange={(value) => setModelId(value as SvgModelId)}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
+          {mode === "single" ? <PromptInput /> : <PackPromptInput />}
+          <StylePresets />
+          <div className="mt-4">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
+              Engine
+            </p>
+            <div className="mt-2">
+              <Select
+                value={modelId}
+                onValueChange={(value) => setModelId(value as SvgModelId)}
               >
-                <SelectValue placeholder="Choose model" />
-              </SelectTrigger>
-              <SelectContent
-                align="start"
-                className="bg-[#0a0a0c] border-zinc-800"
-              >
-                {SVG_MODELS.map((entry) => (
-                  <SelectItem
-                    key={entry.id}
-                    value={entry.id}
-                    className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-xs text-zinc-200 hover:text-white"
-                  >
-                    <span className="flex flex-col">
-                      <span className="font-medium text-inherit">
-                        {entry.provider} • {entry.label}
-                      </span>
-                      {/* <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+                <SelectTrigger
+                  size="sm"
+                  className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
+                >
+                  <SelectValue placeholder="Choose model" />
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  className="bg-[#0a0a0c] border-zinc-800"
+                >
+                  {SVG_MODELS.map((entry) => (
+                    <SelectItem
+                      key={entry.id}
+                      value={entry.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-xs text-zinc-200 hover:text-white"
+                    >
+                      <span className="flex flex-col">
+                        <span className="font-medium text-inherit">
+                          {entry.provider} • {entry.label}
+                        </span>
+                        {/* <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">
                         {entry.provider}
                       </span> */}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-        <IconControls />
+          <IconControls />
 
-        <div className="mt-6 border-t border-zinc-800/80 pt-4">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
-            Export
-          </p>
-          <p className="mt-2 text-[11px] leading-5 text-zinc-500">
-            Copy raw SVG or download the current result.
-          </p>
-        </div>
-
-        {mode === "single" && svg && (
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={copySvg}
-              className="flex-1 rounded-none border border-zinc-700 bg-zinc-900/80 py-2 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-            <button
-              type="button"
-              onClick={downloadSingle}
-              className="flex-1 rounded-none border border-zinc-700 bg-zinc-900/80 py-2 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
-            >
-              Download
-            </button>
+          <div className="mt-6 border-t border-zinc-800/80 pt-4">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
+              Export
+            </p>
+            <p className="mt-2 text-[11px] leading-5 text-zinc-500">
+              Copy raw SVG or download the current result.
+            </p>
           </div>
-        )}
-      </div>
+
+          {mode === "single" && svg && (
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={copySvg}
+                className="flex-1 rounded-none border border-zinc-700 bg-zinc-900/80 py-2 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={downloadSingle}
+                className="flex-1 rounded-none border border-zinc-700 bg-zinc-900/80 py-2 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
+              >
+                Download
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

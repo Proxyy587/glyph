@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { classifyIntent, type GlyphIntent } from "./classifier";
-import { buildLocalBrief } from "./examples";
 import { optimizeSvg } from "./optimizer";
+import { resolveVisualPlan } from "./planner";
 import {
   buildDetailedPrompt,
   GLYPH_SYSTEM_PROMPT,
@@ -20,7 +20,7 @@ import {
 
 export type GlyphStage =
   | "classify"
-  | "brief"
+  | "plan"
   | "generate"
   | "validate"
   | "animate"
@@ -33,6 +33,7 @@ export type GenerateGlyphResult = {
   stages: GlyphStage[];
   usedModel: string;
   provider: "openrouter";
+  planSource?: "curated" | "llm" | "fallback";
 };
 
 async function generateWithFallback(
@@ -44,7 +45,6 @@ async function generateWithFallback(
   const primary = modelId.trim();
   try {
     const { text } = await generateText({
-      // Explicit chat() so the UI-selected OpenRouter model is used correctly
       model: openrouter.chat(primary),
       system,
       prompt,
@@ -67,9 +67,11 @@ async function generateWithFallback(
 }
 
 /**
- * Cost-lean Glyph pipeline:
- *   heuristic classify → local brief → ONE generate call → validate → optimize
- * Optional LLM critique/animate disabled by default (showcase budget).
+ * Plan-then-draw pipeline:
+ * 1. Heuristic classify (free)
+ * 2. Visual plan — curated subject DB OR cheap LLM planner
+ * 3. Draw with selected quality model + VISUAL PLAN injected
+ * 4. Validate → optional anim fallback → SVGO
  */
 export async function generateGlyph(
   controls: GlyphControls,
@@ -84,21 +86,25 @@ export async function generateGlyph(
 
   stages.push("classify");
   const intent = classifyIntent(controls.prompt, controls.style);
+  const wantsAnimation =
+    intent.hasAnimation ||
+    controls.style === "animated" ||
+    intent.style === "animated";
 
-  stages.push("brief");
-  const designBrief = buildLocalBrief(
+  stages.push("plan");
+  const { plan: visualPlan, source: planSource } = await resolveVisualPlan(
     controls.prompt,
-    intent,
-    controls.style,
+    { style: controls.style, wantsAnimation },
   );
-  const detailedPrompt = buildDetailedPrompt(controls, intent, designBrief);
+
+  const detailedPrompt = buildDetailedPrompt(controls, intent, visualPlan);
 
   stages.push("generate");
   const draft = await generateWithFallback(
     generateModel,
     GLYPH_SYSTEM_PROMPT,
     detailedPrompt,
-    0.2,
+    0.15,
   );
   const usedModel = draft.model;
   const raw = draft.text;
@@ -111,21 +117,14 @@ export async function generateGlyph(
     outline: controls.style !== "solid",
   });
 
-  const needsAnimation =
-    intent.hasAnimation ||
-    controls.style === "animated" ||
-    intent.style === "animated";
-
-  if (svg && needsAnimation && !hasAnimationMarkup(svg)) {
+  if (svg && wantsAnimation && !hasAnimationMarkup(svg)) {
     stages.push("animate");
-    // Zero-cost deterministic fallback — no second LLM call
     svg = injectFallbackAnimation(svg);
   }
 
   if (svg) {
     stages.push("optimize");
     svg = optimizeSvg(svg);
-    // Re-validate after SVGO in case it choked earlier on broken attrs
     svg =
       validateAndFixSvg(svg, {
         viewBoxSize: controls.viewBoxSize,
@@ -142,5 +141,6 @@ export async function generateGlyph(
     stages,
     usedModel,
     provider: "openrouter",
+    planSource,
   };
 }

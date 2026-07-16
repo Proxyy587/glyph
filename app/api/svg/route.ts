@@ -163,6 +163,7 @@ export async function POST(request: Request) {
       provider: result.provider,
       intent: result.intent,
       stages: result.stages,
+      planSource: result.planSource,
       saved: true,
     });
   } catch (e) {
