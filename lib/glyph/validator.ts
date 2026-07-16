@@ -35,10 +35,7 @@ function stripUnsafe(svg: string): string {
 
 function ensureXmlns(svg: string): string {
   if (/xmlns\s*=/.test(svg)) return svg;
-  return svg.replace(
-    /<svg\b/i,
-    `<svg xmlns="http://www.w3.org/2000/svg"`,
-  );
+  return svg.replace(/<svg\b/i, `<svg xmlns="http://www.w3.org/2000/svg"`);
 }
 
 function ensureViewBox(svg: string, size: number): string {
@@ -148,7 +145,5 @@ export function extractStyleTokens(svg: string): string {
 
   if (tokens.length === 0) return "";
 
-  return (
-    `[PACK CONSISTENCY: This icon is part of a set. You MUST use these exact style values: ${tokens.join(", ")}. Do not deviate.]`
-  );
+  return `[PACK CONSISTENCY: This icon is part of a set. You MUST use these exact style values: ${tokens.join(", ")}. Do not deviate.]`;
 }

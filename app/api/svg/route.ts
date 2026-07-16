@@ -3,11 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import db from "@/lib/db";
 import { svgGeneration, type SvgPackItem } from "@/lib/db/svg-schema";
-import {
-  extractStyleTokens,
-  generateGlyph,
-  STYLE_GUIDE,
-} from "@/lib/glyph";
+import { extractStyleTokens, generateGlyph, STYLE_GUIDE } from "@/lib/glyph";
 
 export interface SvgApiBody {
   prompt: string;
@@ -70,10 +66,9 @@ export async function POST(request: Request) {
     if (packPrompts.length > 0) {
       const [firstPrompt, ...restPrompts] = packPrompts;
 
-      const firstResult = await generateGlyph(
-        toControls(body, firstPrompt),
-        { model: body.model },
-      );
+      const firstResult = await generateGlyph(toControls(body, firstPrompt), {
+        model: body.model,
+      });
 
       const styleTokens = firstResult.svg
         ? extractStyleTokens(firstResult.svg)

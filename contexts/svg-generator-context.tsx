@@ -6,7 +6,9 @@ import {
   useContext,
   useMemo,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +21,16 @@ import {
 import { useSession } from "@/lib/authClient";
 import { toast } from "sonner";
 import { getQueryClient } from "@/lib/query-client";
+
+export const GLYPH_STAGE_LABELS = [
+  "Classifying intent…",
+  "Writing design brief…",
+  "Drafting geometry…",
+  "Critiquing & refining…",
+  "Validating SVG…",
+  "Injecting motion…",
+  "Polishing output…",
+] as const;
 
 type SvgGeneratorState = {
   mode: "single" | "pack";
@@ -35,6 +47,7 @@ type SvgGeneratorState = {
   packResults: PackItem[];
   loading: boolean;
   loadingPack: boolean;
+  loadingStage: string | null;
   error: string | null;
   copied: boolean;
 };
@@ -60,22 +73,41 @@ type SvgGeneratorContextValue = SvgGeneratorState & {
 
 const initialState: SvgGeneratorState = {
   mode: "single",
-  prompt: "cloud upload icon",
+  prompt: "cloud upload icon, outline, rounded caps",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
-  modelId: "deepseek/deepseek-v3.2",
+  modelId: "anthropic/gpt-4o-mini",
   style: "outline",
   strokeWidth: 1.5,
   cornerRadius: 0,
-  padding: 0,
+  padding: 2,
   viewBoxSize: 24,
   svg: null,
   displaySvg: null,
   packResults: [],
   loading: false,
   loadingPack: false,
+  loadingStage: null,
   error: null,
   copied: false,
 };
+
+function startStageCycle(
+  setState: Dispatch<SetStateAction<SvgGeneratorState>>,
+): () => void {
+  let index = 0;
+  setState((s) => ({
+    ...s,
+    loadingStage: GLYPH_STAGE_LABELS[0],
+  }));
+  const id = window.setInterval(() => {
+    index = Math.min(index + 1, GLYPH_STAGE_LABELS.length - 1);
+    setState((s) => ({
+      ...s,
+      loadingStage: GLYPH_STAGE_LABELS[index],
+    }));
+  }, 2200);
+  return () => window.clearInterval(id);
+}
 
 const SvgGeneratorContext = createContext<SvgGeneratorContextValue | null>(
   null,
@@ -113,13 +145,12 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     if (!state.prompt.trim()) return;
 
     if (!session?.user) {
-      // Lightweight feedback + redirect for unauthenticated users
       router.push("/sign-in");
       toast.error("You need to be signed in to generate SVGs.");
-
       return;
     }
 
+    const stopStages = startStageCycle(setState);
     setState((s) => ({
       ...s,
       loading: true,
@@ -137,53 +168,33 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         }),
       });
       const data = await res.json();
+      stopStages();
       if (!res.ok) {
         setState((s) => ({
           ...s,
           loading: false,
+          loadingStage: null,
           error: data.error ?? "Generation failed",
         }));
         return;
       }
       const full = (data.svg as string) ?? "";
 
-      // Store full SVG for copy/download
       setState((s) => ({
         ...s,
         loading: false,
+        loadingStage: null,
         svg: full,
-        displaySvg: "",
+        displaySvg: full,
       }));
 
       queryClient.invalidateQueries({ queryKey: ["svg-history"] });
-
-      // Lightweight "drawing" animation: progressively reveal SVG markup
-      if (typeof window !== "undefined" && full) {
-        const total = full.length;
-        const steps = 40;
-        const increment = Math.max(1, Math.floor(total / steps));
-
-        let index = 0;
-
-        const tick = () => {
-          index += increment;
-          const slice = full.slice(0, index);
-          setState((s) => ({
-            ...s,
-            displaySvg: slice,
-          }));
-
-          if (index < total) {
-            window.requestAnimationFrame(tick);
-          }
-        };
-
-        window.requestAnimationFrame(tick);
-      }
     } catch (e) {
+      stopStages();
       setState((s) => ({
         ...s,
         loading: false,
+        loadingStage: null,
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
@@ -202,6 +213,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const stopStages = startStageCycle(setState);
     setState((s) => ({
       ...s,
       loadingPack: true,
@@ -219,11 +231,13 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         }),
       });
       const data = await res.json();
+      stopStages();
 
       if (!res.ok) {
         setState((s) => ({
           ...s,
           loadingPack: false,
+          loadingStage: null,
           error: data.error ?? "Failed to generate icon pack",
         }));
         return;
@@ -232,14 +246,17 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         loadingPack: false,
+        loadingStage: null,
         packResults: (data.packResults as PackItem[]) ?? [],
       }));
 
       queryClient.invalidateQueries({ queryKey: ["svg-history"] });
     } catch (e) {
+      stopStages();
       setState((s) => ({
         ...s,
         loadingPack: false,
+        loadingStage: null,
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }

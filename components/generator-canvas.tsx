@@ -212,6 +212,22 @@ export function GeneratorCanvas() {
                         dangerouslySetInnerHTML={{ __html: activeSvg }}
                       />
                     </div>
+
+                    {/* Multi-size optical QA strip */}
+                    <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-end gap-3 rounded-none border border-zinc-800 bg-[#0a0a0c]/90 px-3 py-2 backdrop-blur">
+                      {[16, 24, 32, 48, 64].map((size) => (
+                        <div key={size} className="flex flex-col items-center gap-1">
+                          <div
+                            className="text-zinc-100 [&_svg]:h-full [&_svg]:w-full"
+                            style={{ width: size, height: size }}
+                            dangerouslySetInnerHTML={{ __html: activeSvg }}
+                          />
+                          <span className="text-[9px] tabular-nums text-zinc-600">
+                            {size}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 border-b border-r border-zinc-500/40" />
                     <span className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b border-l border-zinc-500/40" />
                     <span className="absolute top-0 right-0 h-2.5 w-2.5 border-t border-r border-zinc-500/40" />

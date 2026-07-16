@@ -15,10 +15,7 @@ import {
   openrouter,
   resolveGenerateModel,
 } from "./provider";
-import {
-  hasAnimationMarkup,
-  validateAndFixSvg,
-} from "./validator";
+import { hasAnimationMarkup, validateAndFixSvg } from "./validator";
 
 export type GlyphStage =
   | "classify"

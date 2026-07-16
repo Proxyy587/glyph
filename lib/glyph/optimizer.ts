@@ -12,10 +12,7 @@ export function optimizeSvg(svg: string): string {
           name: "preset-default",
           params: {
             overrides: {
-              removeViewBox: false,
-              // Keep style blocks for CSS animation
               removeHiddenElems: false,
-              // Avoid aggressive path merges that can break animation targets
               mergePaths: false,
             },
           },
@@ -39,7 +36,16 @@ export function optimizeSvg(svg: string): string {
       js2svg: { pretty: false },
     });
 
-    return result.data || svg;
+    // Belt-and-suspenders: if a plugin still stripped viewBox, restore from input
+    let data = result.data || svg;
+    if (!/viewBox\s*=/.test(data) && /viewBox\s*=/.test(svg)) {
+      const m = svg.match(/viewBox\s*=\s*["']([^"']+)["']/i);
+      if (m) {
+        data = data.replace(/<svg\b/i, `<svg viewBox="${m[1]}"`);
+      }
+    }
+
+    return data;
   } catch (error) {
     console.warn("[optimizeSvg] SVGO failed, returning original:", error);
     return svg;

@@ -1,5 +1,9 @@
 export { classifyIntent, type GlyphIntent } from "./classifier";
-export { generateGlyph, type GenerateGlyphResult, type GlyphStage } from "./generator";
+export {
+  generateGlyph,
+  type GenerateGlyphResult,
+  type GlyphStage,
+} from "./generator";
 export { STYLE_GUIDE } from "./prompts";
 export { extractStyleTokens, validateAndFixSvg } from "./validator";
 export {

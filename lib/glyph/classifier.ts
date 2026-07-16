@@ -65,25 +65,14 @@ export async function classifyIntent(
     });
 
     // UI style preset wins when provided
-    if (styleHint && styleHint !== "rounded" && styleHint !== "sharp") {
-      if (styleHint === "animated") {
-        return { ...object, style: "animated", hasAnimation: true };
-      }
-      if (
-        styleHint === "outline" ||
-        styleHint === "solid" ||
-        styleHint === "duotone"
-      ) {
-        return {
-          ...object,
-          style: styleHint,
-          hasAnimation: styleHint === "animated" ? true : object.hasAnimation,
-        };
-      }
-    }
-
     if (styleHint === "animated") {
       return { ...object, style: "animated", hasAnimation: true };
+    }
+    if (styleHint === "outline" || styleHint === "solid" || styleHint === "duotone") {
+      return { ...object, style: styleHint };
+    }
+    if (styleHint === "rounded" || styleHint === "sharp") {
+      return { ...object, style: "outline" };
     }
 
     return object;

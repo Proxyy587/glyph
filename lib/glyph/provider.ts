@@ -8,7 +8,7 @@ export const GLYPH_CLASSIFY_MODEL =
   process.env.GLYPH_CLASSIFY_MODEL ?? "openai/gpt-oss-20b:free";
 
 export const GLYPH_GENERATE_MODEL =
-  process.env.GLYPH_GENERATE_MODEL ?? "anthropic/claude-sonnet-4";
+  process.env.GLYPH_GENERATE_MODEL ?? "anthropic/gpt-4o-mini";
 
 export const GLYPH_FALLBACK_MODEL =
   process.env.GLYPH_FALLBACK_MODEL ?? "openrouter/free";

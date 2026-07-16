@@ -260,7 +260,7 @@ Success (single):
 ```json
 {
   "svg": "<svg ...>...</svg>",
-  "model": "anthropic/claude-sonnet-4",
+  "model": "anthropic/gpt-4o-mini",
   "provider": "openrouter",
   "intent": { "...": "..." },
   "stages": ["classify", "brief", "generate", "critique", "validate", "optimize"],
