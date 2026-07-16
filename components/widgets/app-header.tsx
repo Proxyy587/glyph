@@ -25,8 +25,16 @@ export function AppHeader({
       <div className="flex items-center gap-2">
         <Link
           href="/"
-          className="tracking-[0.18em] text-zinc-100 uppercase no-underline"
+          className="inline-flex items-center gap-2.5 tracking-[0.18em] text-zinc-100 uppercase no-underline"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt=""
+            width={22}
+            height={22}
+            className="size-[22px] shrink-0"
+          />
           Glyph
         </Link>
         <span className="flex h-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 px-2 text-[9px] font-medium uppercase tracking-[0.16em] text-zinc-400">

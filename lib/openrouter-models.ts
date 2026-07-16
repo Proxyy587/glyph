@@ -5,7 +5,7 @@
 export const OPENROUTER_FREE_MODELS = [
   {
     id: "openai/gpt-4o-mini",
-    label: "GPT-4o Mini",
+    label: "Default",
     provider: "OpenAI",
   },
   // {

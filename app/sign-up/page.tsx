@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthPanel } from "@/components/auth/auth-panel";
+
+export const metadata: Metadata = {
+  title: "Sign up",
+  description:
+    "Create a Glyph account to generate Lucide-grade SVG icons, save packs, and build your personal icon library.",
+  alternates: { canonical: "/sign-up" },
+  robots: { index: false, follow: true },
+};
 
 export default function SignUpPage() {
   return (

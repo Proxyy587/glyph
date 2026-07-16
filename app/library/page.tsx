@@ -1,7 +1,21 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { LadderRail } from "@/components/generator-ornaments";
 import { AppHeader } from "@/components/widgets/app-header";
+
+export const metadata: Metadata = {
+  title: "Community library",
+  description:
+    "Browse community SVG icons and prompt recipes on Glyph. Explore packs, outline sets, and reusable icon generation patterns.",
+  alternates: { canonical: "/library" },
+  openGraph: {
+    title: "Community library · Glyph",
+    description:
+      "Browse community SVG icons and prompt recipes generated with Glyph.",
+    url: "/library",
+  },
+};
 
 const placeholderRows = [
   {
