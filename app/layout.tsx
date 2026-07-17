@@ -46,10 +46,10 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: "/opengraph-image",
+        url: "/banner.png",
         width: 1200,
         height: 630,
-        alt: `${siteConfig.name} — prompt to Lucide-grade SVG icons`,
+        alt: `${siteConfig.name} — prompt to SVG generator`,
       },
     ],
   },
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    images: ["/twitter-image"],
+    images: ["/banner.png"],
     creator: siteConfig.creator,
   },
   robots: {
