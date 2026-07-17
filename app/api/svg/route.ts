@@ -1,22 +1,31 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import {
+  MAX_PACK_SIZE,
+  MAX_PROMPT_LENGTH,
+  PACK_CONCURRENCY,
+  svgGenerateBodySchema,
+} from "@/lib/api/svg-schema";
 import db from "@/lib/db";
 import { svgGeneration, type SvgPackItem } from "@/lib/db/svg-schema";
 import { extractStyleTokens, generateGlyph, STYLE_GUIDE } from "@/lib/glyph";
+import {
+  checkGenerationRateLimit,
+  mapWithConcurrency,
+} from "@/lib/rate-limit";
 
-export interface SvgApiBody {
-  prompt: string;
-  style?: keyof typeof STYLE_GUIDE | string;
-  strokeWidth?: number;
-  cornerRadius?: number;
-  padding?: number;
-  viewBoxSize?: 16 | 24 | 32;
-  packPrompts?: string[];
-  model?: string;
-}
-
-function toControls(body: SvgApiBody, prompt: string, styleLock?: string) {
+function toControls(
+  body: {
+    style?: string;
+    strokeWidth?: number;
+    cornerRadius?: number;
+    padding?: number;
+    viewBoxSize?: 16 | 24 | 32;
+  },
+  prompt: string,
+  styleLock?: string,
+) {
   const style =
     body.style && STYLE_GUIDE[body.style] ? String(body.style) : "outline";
 
@@ -31,22 +40,20 @@ function toControls(body: SvgApiBody, prompt: string, styleLock?: string) {
   };
 }
 
+function rateLimitHeaders(remaining: {
+  minute: number;
+  hour: number;
+  day: number;
+}) {
+  return {
+    "X-RateLimit-Remaining-Minute": String(remaining.minute),
+    "X-RateLimit-Remaining-Hour": String(remaining.hour),
+    "X-RateLimit-Remaining-Day": String(remaining.day),
+  };
+}
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as SvgApiBody;
-
-    const packPrompts = (body.packPrompts ?? [])
-      .map((p) => p.trim())
-      .filter(Boolean);
-    const prompt = body.prompt?.trim();
-
-    if (!prompt && packPrompts.length === 0) {
-      return NextResponse.json(
-        { error: "Enter a prompt and click Generate to see your icon." },
-        { status: 400 },
-      );
-    }
-
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -57,8 +64,47 @@ export async function POST(request: Request) {
 
     if (!process.env.OPENROUTER_API_KEY) {
       return NextResponse.json(
-        { error: "Server missing OPENROUTER_API_KEY." },
-        { status: 500 },
+        { error: "Generation is temporarily unavailable." },
+        { status: 503 },
+      );
+    }
+
+    let json: unknown;
+    try {
+      json = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+
+    const parsed = svgGenerateBodySchema.safeParse(json);
+    if (!parsed.success) {
+      const message =
+        parsed.error.issues[0]?.message ??
+        `Invalid request (prompt ≤ ${MAX_PROMPT_LENGTH} chars, pack ≤ ${MAX_PACK_SIZE}).`;
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const body = parsed.data;
+    const packPrompts = (body.packPrompts ?? [])
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const prompt = body.prompt?.trim() ?? "";
+    const requestedUnits = packPrompts.length > 0 ? packPrompts.length : 1;
+
+    const limit = await checkGenerationRateLimit(
+      session.user.id,
+      requestedUnits,
+    );
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: limit.message, limit: limit.limit },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limit.retryAfterSec),
+            "X-RateLimit-Limit": limit.limit,
+          },
+        },
       );
     }
 
@@ -79,11 +125,13 @@ export async function POST(request: Request) {
         : {
             prompt: firstPrompt,
             svg: null,
-            error: `Invalid SVG: ${firstResult.raw.slice(0, 120)}`,
+            error: "Could not generate a valid SVG for this prompt.",
           };
 
-      const restResults = await Promise.all(
-        restPrompts.map(async (packPrompt): Promise<SvgPackItem> => {
+      const restResults = await mapWithConcurrency(
+        restPrompts,
+        PACK_CONCURRENCY,
+        async (packPrompt): Promise<SvgPackItem> => {
           try {
             const result = await generateGlyph(
               toControls(body, packPrompt, styleTokens || undefined),
@@ -93,19 +141,19 @@ export async function POST(request: Request) {
               return {
                 prompt: packPrompt,
                 svg: null,
-                error: `Invalid SVG: ${result.raw.slice(0, 120)}`,
+                error: "Could not generate a valid SVG for this prompt.",
               };
             }
             return { prompt: packPrompt, svg: result.svg };
           } catch (error) {
+            console.error("[SVG API] Pack item failed:", error);
             return {
               prompt: packPrompt,
               svg: null,
-              error:
-                error instanceof Error ? error.message : "Generation failed",
+              error: "Generation failed",
             };
           }
-        }),
+        },
       );
 
       const allResults = [firstPackItem, ...restResults];
@@ -119,57 +167,69 @@ export async function POST(request: Request) {
         generatedPack: allResults,
       });
 
-      return NextResponse.json({
-        packResults: allResults,
-        successCount,
-        totalCount: allResults.length,
-        stages: firstResult.stages,
-        intent: firstResult.intent,
-        saved: true,
-      });
+      return NextResponse.json(
+        {
+          packResults: allResults,
+          successCount,
+          totalCount: allResults.length,
+          stages: firstResult.stages,
+          intent: firstResult.intent,
+          saved: true,
+        },
+        { headers: rateLimitHeaders(limit.remaining) },
+      );
     }
 
     // ── Single Mode ──────────────────────────────────────────────────────────
-    const result = await generateGlyph(toControls(body, prompt!), {
+    const result = await generateGlyph(toControls(body, prompt), {
       model: body.model,
     });
 
     if (!result.svg) {
+      // Persist attempt so failed calls still count toward rate limits.
+      await db.insert(svgGeneration).values({
+        userId: session.user.id,
+        prompt,
+        mode: "single",
+        generatedSvg: null,
+        generatedPack: null,
+      });
+
       return NextResponse.json(
         {
           error:
             "Could not generate a valid SVG. Please try rephrasing your prompt.",
-          raw: result.raw.slice(0, 500),
-          model: result.usedModel,
-          provider: result.provider,
           intent: result.intent,
           stages: result.stages,
         },
-        { status: 422 },
+        { status: 422, headers: rateLimitHeaders(limit.remaining) },
       );
     }
 
     await db.insert(svgGeneration).values({
       userId: session.user.id,
-      prompt: prompt!,
+      prompt,
       mode: "single",
       generatedSvg: result.svg,
       generatedPack: null,
     });
 
-    return NextResponse.json({
-      svg: result.svg,
-      model: result.usedModel,
-      provider: result.provider,
-      intent: result.intent,
-      stages: result.stages,
-      planSource: result.planSource,
-      saved: true,
-    });
+    return NextResponse.json(
+      {
+        svg: result.svg,
+        model: result.usedModel,
+        provider: result.provider,
+        intent: result.intent,
+        stages: result.stages,
+        planSource: result.planSource,
+        saved: true,
+      },
+      { headers: rateLimitHeaders(limit.remaining) },
+    );
   } catch (e) {
     console.error("[SVG API] Unhandled error:", e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Generation failed" },
+      { error: "Generation failed. Please try again." },
       { status: 500 },
     );
   }

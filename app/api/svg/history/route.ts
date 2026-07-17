@@ -1,12 +1,14 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import db from "@/lib/db";
 import { svgGeneration } from "@/lib/db/svg-schema";
 import { eq, desc, and } from "drizzle-orm";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const deleteBodySchema = z.object({
+  id: z.string().uuid(),
+});
 
 export async function GET() {
   try {
@@ -59,7 +61,14 @@ export async function GET() {
       })
       .filter(Boolean);
 
-    return NextResponse.json({ items });
+    return NextResponse.json(
+      { items },
+      {
+        headers: {
+          "Cache-Control": "private, no-store",
+        },
+      },
+    );
   } catch (error) {
     console.error("Failed to load SVG history:", error);
     return NextResponse.json(
@@ -76,17 +85,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const id = typeof body.id === "string" ? body.id.trim() : null;
-    if (!id) {
-      return NextResponse.json(
-        { error: "Missing id in body" },
-        { status: 400 },
-      );
+    let json: unknown;
+    try {
+      json = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    // Only allow deleting single-generation rows (uuid). Pack sub-items use "uuid:prompt".
-    if (!UUID_REGEX.test(id)) {
+    const parsed = deleteBodySchema.safeParse(json);
+    if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid id; only single generations can be deleted" },
         { status: 400 },
@@ -97,7 +104,7 @@ export async function DELETE(request: Request) {
       .delete(svgGeneration)
       .where(
         and(
-          eq(svgGeneration.id, id),
+          eq(svgGeneration.id, parsed.data.id),
           eq(svgGeneration.userId, session.user.id),
         ),
       )

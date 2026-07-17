@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import Image from "next/image";
 
 export const runtime = "edge";
-export const alt = "Glyph — AI SVG icon generator";
+export const alt = "Glyph | Prompt to SVG generator";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -41,7 +42,7 @@ export default function OpenGraphImage() {
             fontWeight: 700,
           }}
         >
-          G
+          <Image src="/icon.svg" alt="Glyph" width={72} height={72} />
         </div>
         <div
           style={{
@@ -67,7 +68,7 @@ export default function OpenGraphImage() {
             maxWidth: 900,
           }}
         >
-          Prompt to Lucide-grade SVG icons
+          Prompt to SVG generator
         </div>
         <div
           style={{
@@ -77,8 +78,8 @@ export default function OpenGraphImage() {
             maxWidth: 820,
           }}
         >
-          AI icon generator for developers — outline, solid, duotone &amp;
-          animated vectors.
+          Generate SVG icons from text prompts. Outline, solid, duotone &amp;
+          animated icons clean, scalable, and developer use.
         </div>
       </div>
 
@@ -94,7 +95,7 @@ export default function OpenGraphImage() {
         }}
       >
         <span>AI · SVG · Icons</span>
-        <span>Developer-ready</span>
+        <span>Develope for use</span>
       </div>
     </div>,
     { ...size },

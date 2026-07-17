@@ -25,11 +25,41 @@ export function extractSvg(raw: string): string | null {
   return content.slice(start, end + 6);
 }
 
+/**
+ * Strip XSS / exfiltration vectors before dangerouslySetInnerHTML.
+ * Models are instructed not to emit these; this is defense in depth.
+ */
 function stripUnsafe(svg: string): string {
-  return svg
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, "");
+  return (
+    svg
+      // Executable / embedded content
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "")
+      .replace(/<foreignObject\b[^>]*\/?>/gi, "")
+      .replace(/<image\b[^>]*\/?>/gi, "")
+      .replace(/<image[\s\S]*?<\/image>/gi, "")
+      .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+      .replace(/<object[\s\S]*?<\/object>/gi, "")
+      .replace(/<embed\b[^>]*\/?>/gi, "")
+      // Event handlers
+      .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "")
+      .replace(/\s+on\w+\s*=\s*[^\s>]+/gi, "")
+      // javascript: / data: URLs in href / xlink:href / src
+      .replace(
+        /\s(?:xlink:)?href\s*=\s*["']\s*javascript:[^"']*["']/gi,
+        ' href="#"',
+      )
+      .replace(
+        /\s(?:xlink:)?href\s*=\s*["']\s*data:[^"']*["']/gi,
+        ' href="#"',
+      )
+      .replace(/\ssrc\s*=\s*["'][^"']*["']/gi, "")
+      // External stylesheet / URL imports in style blocks
+      .replace(/@import\b[^;]+;/gi, "")
+      .replace(/expression\s*\(/gi, "(")
+      .replace(/url\s*\(\s*["']?\s*javascript:[^)]*\)/gi, "url(#)")
+      .replace(/url\s*\(\s*["']?\s*https?:[^)]*\)/gi, "url(#)")
+  );
 }
 
 /** Fix truncated/broken attributes like `stroke-` or `fill=` without value. */

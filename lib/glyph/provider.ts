@@ -1,4 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { OPENROUTER_FREE_MODELS } from "@/lib/openrouter-models";
 
 export const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -19,9 +20,13 @@ export const GLYPH_GENERATE_MODEL =
 export const GLYPH_FALLBACK_MODEL =
   process.env.GLYPH_FALLBACK_MODEL ?? "openrouter/free";
 
+const ALLOWED_GENERATE_MODELS = new Set<string>(
+  OPENROUTER_FREE_MODELS.map((m) => m.id),
+);
+
 export function resolveGenerateModel(requested?: string): string {
   const id = requested?.trim();
-  if (id) return id;
+  if (id && ALLOWED_GENERATE_MODELS.has(id)) return id;
   return GLYPH_GENERATE_MODEL;
 }
 

@@ -142,6 +142,11 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const generate = useCallback(async () => {
     if (!state.prompt.trim()) return;
 
+    if (state.prompt.trim().length > 500) {
+      toast.error("Prompt is too long (max 500 characters).");
+      return;
+    }
+
     if (!session?.user) {
       router.push("/sign-in");
       toast.error("You need to be signed in to generate SVGs.");
@@ -168,11 +173,13 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       stopStages();
       if (!res.ok) {
+        const message = data.error ?? "Generation failed";
+        if (res.status === 429) toast.error(message);
         setState((s) => ({
           ...s,
           loading: false,
           loadingStage: null,
-          error: data.error ?? "Generation failed",
+          error: message,
         }));
         return;
       }
@@ -205,6 +212,11 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       .filter(Boolean);
     if (lines.length === 0) return;
 
+    if (lines.length > 8) {
+      toast.error("Packs are limited to 8 prompts at a time.");
+      return;
+    }
+
     if (!session?.user) {
       toast.error("You need to be signed in to generate an icon pack.");
       router.push("/sign-in");
@@ -232,11 +244,13 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       stopStages();
 
       if (!res.ok) {
+        const message = data.error ?? "Failed to generate icon pack";
+        if (res.status === 429) toast.error(message);
         setState((s) => ({
           ...s,
           loadingPack: false,
           loadingStage: null,
-          error: data.error ?? "Failed to generate icon pack",
+          error: message,
         }));
         return;
       }

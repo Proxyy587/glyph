@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 
-export default async function proxy(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
-
+/**
+ * Proxy is reserved for lightweight edge checks.
+ * Auth for generation is enforced in API routes; public pages stay crawlable.
+ * Keep matcher empty unless you add a private route that needs a soft gate.
+ */
+export function proxy(_request: NextRequest) {
   return NextResponse.next();
 }
 

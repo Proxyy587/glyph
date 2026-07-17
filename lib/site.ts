@@ -4,9 +4,9 @@
 export const siteConfig = {
   name: "Glyph",
   shortName: "Glyph",
-  tagline: "AI SVG icon generator",
+  tagline: "Prompt to SVG generator",
   description:
-    "Generate Lucide-grade SVG icons from text prompts. Outline, solid, duotone, and animated icons — clean, scalable, developer-ready.",
+    "Generate SVG icons from text prompts. Outline, solid, duotone, and animated icons clean, scalable, and developer use.",
   url:
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
     process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ||
@@ -15,6 +15,7 @@ export const siteConfig = {
   creator: "@glyph",
   keywords: [
     "AI SVG generator",
+    "Prompt to SVG generator",
     "SVG icon generator",
     "AI icon maker",
     "Lucide icons",
