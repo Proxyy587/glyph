@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import Image from "next/image";
 
 export const runtime = "edge";
-export const alt = "Glyph — AI SVG icon generator";
+export const alt = "Glyph | Prompt to SVG generator";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -19,7 +20,13 @@ export default function TwitterImage() {
         fontFamily: "ui-sans-serif, system-ui, sans-serif",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+        }}
+      >
         <div
           style={{
             width: 72,
@@ -31,12 +38,11 @@ export default function TwitterImage() {
             alignItems: "center",
             justifyContent: "center",
             color: "#FAFAFA",
-            fontSize: 36,
+            fontSize: 40,
             fontWeight: 700,
-            letterSpacing: "-0.04em",
           }}
         >
-          G
+          <Image src="/icon.svg" alt="Glyph" width={72} height={72} />
         </div>
         <div
           style={{
@@ -62,7 +68,7 @@ export default function TwitterImage() {
             maxWidth: 900,
           }}
         >
-          Prompt to Lucide-grade SVG icons
+          Prompt to SVG generator
         </div>
         <div
           style={{
@@ -72,8 +78,8 @@ export default function TwitterImage() {
             maxWidth: 820,
           }}
         >
-          AI icon generator for developers — outline, solid, duotone &amp;
-          animated vectors.
+          Generate SVG icons from text prompts. Outline, solid, duotone &amp;
+          animated icons clean, scalable, and developer use.
         </div>
       </div>
 
@@ -81,6 +87,7 @@ export default function TwitterImage() {
         style={{
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "center",
           color: "#71717A",
           fontSize: 22,
           letterSpacing: "0.08em",
@@ -88,7 +95,7 @@ export default function TwitterImage() {
         }}
       >
         <span>AI · SVG · Icons</span>
-        <span>Developer-ready</span>
+        <span>Develope for use</span>
       </div>
     </div>,
     { ...size },

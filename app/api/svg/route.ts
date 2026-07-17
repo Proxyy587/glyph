@@ -10,10 +10,7 @@ import {
 import db from "@/lib/db";
 import { svgGeneration, type SvgPackItem } from "@/lib/db/svg-schema";
 import { extractStyleTokens, generateGlyph, STYLE_GUIDE } from "@/lib/glyph";
-import {
-  checkGenerationRateLimit,
-  mapWithConcurrency,
-} from "@/lib/rate-limit";
+import { checkGenerationRateLimit, mapWithConcurrency } from "@/lib/rate-limit";
 
 function toControls(
   body: {
@@ -73,7 +70,10 @@ export async function POST(request: Request) {
     try {
       json = await request.json();
     } catch {
-      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid JSON body." },
+        { status: 400 },
+      );
     }
 
     const parsed = svgGenerateBodySchema.safeParse(json);

@@ -8,9 +8,7 @@ export const MAX_PROMPT_LENGTH = Number(
 export const MAX_PACK_SIZE = Number(process.env.GLYPH_MAX_PACK_SIZE ?? 8);
 export const PACK_CONCURRENCY = Number(process.env.GLYPH_PACK_CONCURRENCY ?? 3);
 
-const ALLOWED_MODELS = new Set<string>(
-  OPENROUTER_FREE_MODELS.map((m) => m.id),
-);
+const ALLOWED_MODELS = new Set<string>(OPENROUTER_FREE_MODELS.map((m) => m.id));
 
 export const svgGenerateBodySchema = z
   .object({

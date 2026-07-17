@@ -49,10 +49,7 @@ function stripUnsafe(svg: string): string {
         /\s(?:xlink:)?href\s*=\s*["']\s*javascript:[^"']*["']/gi,
         ' href="#"',
       )
-      .replace(
-        /\s(?:xlink:)?href\s*=\s*["']\s*data:[^"']*["']/gi,
-        ' href="#"',
-      )
+      .replace(/\s(?:xlink:)?href\s*=\s*["']\s*data:[^"']*["']/gi, ' href="#"')
       .replace(/\ssrc\s*=\s*["'][^"']*["']/gi, "")
       // External stylesheet / URL imports in style blocks
       .replace(/@import\b[^;]+;/gi, "")

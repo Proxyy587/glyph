@@ -41,10 +41,7 @@ export const svgGeneration = pgTable(
   (table) => [
     index("svg_generation_user_id_idx").on(table.userId),
     index("svg_generation_mode_idx").on(table.mode),
-    index("svg_generation_user_created_idx").on(
-      table.userId,
-      table.createdAt,
-    ),
+    index("svg_generation_user_created_idx").on(table.userId, table.createdAt),
   ],
 );
 

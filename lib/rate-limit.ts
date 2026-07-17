@@ -39,7 +39,10 @@ async function usageSince(userId: string, since: Date): Promise<number> {
     })
     .from(svgGeneration)
     .where(
-      and(eq(svgGeneration.userId, userId), gte(svgGeneration.createdAt, since)),
+      and(
+        eq(svgGeneration.userId, userId),
+        gte(svgGeneration.createdAt, since),
+      ),
     );
 
   return rows.reduce((sum, row) => sum + unitsFromRow(row), 0);
