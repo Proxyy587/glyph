@@ -12,7 +12,10 @@ export function downloadSvgAsPng(
 
   // Firefox refuses to rasterise SVGs without explicit dimensions.
   const sized = svgString.replace(/<svg\b([^>]*)>/i, (_tag, attrs: string) => {
-    const clean = attrs.replace(/\s(?:width|height)\s*=\s*(["'])[^"']*\1/gi, "");
+    const clean = attrs.replace(
+      /\s(?:width|height)\s*=\s*(["'])[^"']*\1/gi,
+      "",
+    );
     return `<svg${clean} width="${size}" height="${size}" color="${color}">`;
   });
 

@@ -386,16 +386,13 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const reusePrompt = useCallback(
-    (prompt: string, mode: "single" | "pack") => {
-      setState((s) =>
-        mode === "single"
-          ? { ...s, mode, prompt: prompt.trim(), error: null }
-          : { ...s, mode, packPrompts: prompt.trim(), error: null },
-      );
-    },
-    [],
-  );
+  const reusePrompt = useCallback((prompt: string, mode: "single" | "pack") => {
+    setState((s) =>
+      mode === "single"
+        ? { ...s, mode, prompt: prompt.trim(), error: null }
+        : { ...s, mode, packPrompts: prompt.trim(), error: null },
+    );
+  }, []);
 
   const clearError = useCallback(() => {
     setState((s) => ({ ...s, error: null }));

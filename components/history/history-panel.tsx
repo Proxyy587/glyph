@@ -82,9 +82,7 @@ export function HistoryPanel({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [previewEntry, setPreviewEntry] = useState<HistoryEntry | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<HistoryEntry | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] = useState<HistoryEntry | null>(null);
 
   const items = useMemo(() => historyQuery.data ?? [], [historyQuery.data]);
   const counts = useMemo(
@@ -154,10 +152,7 @@ export function HistoryPanel({
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-zinc-800/80 px-4 py-4">
         <div
-          className={cn(
-            "flex items-center justify-between",
-            inSheet && "pr-9",
-          )}
+          className={cn("flex items-center justify-between", inSheet && "pr-9")}
         >
           <span className="text-[10px] font-medium uppercase tracking-[0.24em] text-zinc-500">
             History

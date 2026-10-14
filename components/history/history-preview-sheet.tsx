@@ -383,10 +383,7 @@ function PackPreview({
         <button
           type="button"
           onClick={() => {
-            reusePrompt(
-              entry.items.map((i) => i.prompt).join("\n"),
-              "pack",
-            );
+            reusePrompt(entry.items.map((i) => i.prompt).join("\n"), "pack");
             toast.success("Pack prompts loaded into the editor");
             onClose();
             onOpened?.();
