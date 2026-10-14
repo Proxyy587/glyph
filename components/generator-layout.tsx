@@ -22,7 +22,7 @@ export function GeneratorLayout() {
             <LadderRail side="left" />
           </aside>
 
-          <section className="mx-auto flex h-full min-h-0 w-full max-w-7xl overflow-hidden border-x border-zinc-800/80">
+          <section className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col overflow-hidden border-x border-zinc-800/80 md:flex-row">
             <GeneratorLeftSidebar />
             <GeneratorCanvas />
             <GeneratorLibrarySidebar />

@@ -3,35 +3,37 @@
 import { cn } from "@/lib/utils";
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
 
+const MODES = [
+  { id: "single", label: "Single icon" },
+  { id: "pack", label: "Icon pack" },
+] as const;
+
 export function ModeToggle() {
   const { mode, setMode } = useSvgGenerator();
 
   return (
-    <div className="flex gap-0.25 rounded-none bg-zinc-900/50 p-0.5">
-      <button
-        type="button"
-        onClick={() => setMode("single")}
-        className={cn(
-          "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
-          mode === "single"
-            ? "bg-zinc-800/80 rounded-none border border-zinc-800 text-zinc-100 shadow-sm"
-            : "text-zinc-500 hover:text-zinc-300",
-        )}
-      >
-        Single
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode("pack")}
-        className={cn(
-          "flex-1 rounded-md py-2 text-xs font-medium transition-colors",
-          mode === "pack"
-            ? "bg-zinc-800/80 rounded-none border border-zinc-800 text-zinc-100 shadow-sm"
-            : "text-zinc-500 hover:text-zinc-300",
-        )}
-      >
-        Pack
-      </button>
+    <div
+      role="tablist"
+      aria-label="Generation mode"
+      className="mx-4 mt-4 grid grid-cols-2 border border-zinc-800 bg-zinc-900/40 p-0.5"
+    >
+      {MODES.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          role="tab"
+          aria-selected={mode === m.id}
+          onClick={() => setMode(m.id)}
+          className={cn(
+            "py-1.5 text-xs font-medium transition-colors",
+            mode === m.id
+              ? "bg-zinc-100 text-zinc-900"
+              : "text-zinc-500 hover:text-zinc-200",
+          )}
+        >
+          {m.label}
+        </button>
+      ))}
     </div>
   );
 }

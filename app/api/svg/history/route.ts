@@ -15,12 +15,34 @@ const patchBodySchema = z.object({
   variantIndex: z.number().int().min(0).max(8),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session?.user?.id) {
       return NextResponse.json({ items: [] }, { status: 200 });
+    }
+
+    const variantsFor = new URL(request.url).searchParams.get("variants");
+    if (variantsFor !== null) {
+      const id = z.string().uuid().safeParse(variantsFor);
+      if (!id.success) {
+        return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+      }
+      const [row] = await db
+        .select({ variants: svgGeneration.variants })
+        .from(svgGeneration)
+        .where(
+          and(
+            eq(svgGeneration.id, id.data),
+            eq(svgGeneration.userId, session.user.id),
+          ),
+        )
+        .limit(1);
+      return NextResponse.json(
+        { variants: row?.variants ?? [] },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     }
 
     const rows = await db

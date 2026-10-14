@@ -22,11 +22,13 @@ export function GeneratorCanvas() {
     selectVariant,
   } = useSvgGenerator();
   const [tab, setTab] = useState<"canvas" | "code">("canvas");
-  // Edited SVG is local and optional (code tab)
-  const [editedSvg, setEditedSvg] = useState<string | null>(null);
+  // Code-tab edits only apply to the SVG they were made on.
+  const [edit, setEdit] = useState<{ base: string; value: string } | null>(
+    null,
+  );
 
-  // Compute activeSvg: if svg changes, this resets unless user is typing
-  const activeSvg = editedSvg !== null ? editedSvg : (displaySvg ?? svg ?? "");
+  const baseSvg = displaySvg ?? svg ?? "";
+  const activeSvg = edit && edit.base === baseSvg ? edit.value : baseSvg;
 
   const hasSingleResult = Boolean(svg);
 
@@ -246,7 +248,7 @@ export function GeneratorCanvas() {
                           key={index}
                           type="button"
                           onClick={() => {
-                            setEditedSvg(null);
+                            setEdit(null);
                             selectVariant(index);
                           }}
                           aria-label={`Use variant ${index + 1}`}
@@ -311,7 +313,9 @@ export function GeneratorCanvas() {
                     </div>
                     <textarea
                       value={activeSvg}
-                      onChange={(event) => setEditedSvg(event.target.value)}
+                      onChange={(event) =>
+                        setEdit({ base: baseSvg, value: event.target.value })
+                      }
                       className="min-h-[260px] w-full rounded border border-zinc-800 bg-[#050509] px-3 py-3 font-mono text-xs text-zinc-100 shadow-inner outline-none focus:border-zinc-500"
                       spellCheck={false}
                     />

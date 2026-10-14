@@ -29,7 +29,7 @@ export function PackLoading() {
         {loadingStage ?? "Generating pack…"}
       </p>
       <p className="text-[11px] text-zinc-600">
-        First icon locks style · rest run in parallel
+        Drawing the whole set together. Usually 15–30 seconds.
       </p>
     </div>
   );

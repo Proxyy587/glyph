@@ -37,10 +37,10 @@ export function IconControls() {
               type="button"
               onClick={() => setViewBoxSize(size)}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                "border px-2.5 py-1.5 text-xs font-medium tabular-nums transition-colors",
                 viewBoxSize === size
-                  ? "bg-zinc-100 text-zinc-900"
-                  : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200",
+                  ? "border-zinc-100 bg-zinc-100 text-zinc-900"
+                  : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200",
               )}
             >
               {size}

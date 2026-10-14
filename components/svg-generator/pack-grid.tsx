@@ -1,6 +1,7 @@
 "use client";
 
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
+import { SvgPreview } from "@/components/svg-generator/svg-preview";
 
 export function PackGrid() {
   const { packResults, downloadSvg } = useSvgGenerator();
@@ -14,9 +15,9 @@ export function PackGrid() {
           key={i}
           className="flex flex-col items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4"
         >
-          <div className="flex h-14 w-14 items-center justify-center text-zinc-100 [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:shrink-0">
+          <div className="flex h-14 w-14 items-center justify-center text-zinc-100">
             {item.svg ? (
-              <div dangerouslySetInnerHTML={{ __html: item.svg }} />
+              <SvgPreview svg={item.svg} className="h-14 w-14" />
             ) : (
               <span className="text-[11px] text-zinc-500">
                 {item.error ?? "…"}

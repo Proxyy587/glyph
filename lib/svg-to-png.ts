@@ -1,14 +1,22 @@
 /**
  * Export an SVG string as a PNG file (client-side, using canvas).
+ * Icons use `currentColor`, so `color` decides the PNG ink colour.
  */
 export function downloadSvgAsPng(
   svgString: string,
   filename = "icon",
   size = 512,
+  color = "#0a0a0c",
 ): void {
   if (typeof document === "undefined" || typeof window === "undefined") return;
 
-  const blob = new Blob([svgString], { type: "image/svg+xml" });
+  // Firefox refuses to rasterise SVGs without explicit dimensions.
+  const sized = svgString.replace(/<svg\b([^>]*)>/i, (_tag, attrs: string) => {
+    const clean = attrs.replace(/\s(?:width|height)\s*=\s*(["'])[^"']*\1/gi, "");
+    return `<svg${clean} width="${size}" height="${size}" color="${color}">`;
+  });
+
+  const blob = new Blob([sized], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const img = new Image();
 
@@ -22,8 +30,6 @@ export function downloadSvgAsPng(
         URL.revokeObjectURL(url);
         return;
       }
-      ctx.fillStyle = "transparent";
-      ctx.fillRect(0, 0, size, size);
       ctx.drawImage(img, 0, 0, size, size);
 
       canvas.toBlob(
@@ -37,7 +43,7 @@ export function downloadSvgAsPng(
           a.href = pngUrl;
           a.download = `${safe}.png`;
           a.click();
-          URL.revokeObjectURL(pngUrl);
+          setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
         },
         "image/png",
         1,

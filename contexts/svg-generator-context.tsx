@@ -19,6 +19,12 @@ import {
 import { useSession } from "@/lib/authClient";
 import { toast } from "sonner";
 import { getQueryClient } from "@/lib/query-client";
+import {
+  copyToClipboard,
+  downloadSvgFile,
+  fileNameFor,
+} from "@/lib/icon-export";
+import { downloadSvgAsPng } from "@/lib/svg-to-png";
 
 export const GLYPH_STAGE_LABELS = [
   "Reading your prompt…",
@@ -65,13 +71,22 @@ type SvgGeneratorContextValue = SvgGeneratorState & {
   copySvg: () => Promise<void>;
   downloadSvg: (content: string, name?: string) => void;
   downloadSingle: () => void;
-  loadSvgIntoWorkspace: (svg: string, prompt?: string) => void;
+  downloadSinglePng: () => void;
+  loadSvgIntoWorkspace: (svg: string, options?: LoadOptions) => void;
+  reusePrompt: (prompt: string, mode: "single" | "pack") => void;
+  saveVariantChoice: (id: string, index: number) => void;
   clearError: () => void;
+};
+
+type LoadOptions = {
+  prompt?: string;
+  variants?: string[];
+  generationId?: string | null;
 };
 
 const initialState: SvgGeneratorState = {
   mode: "single",
-  prompt: "cloud upload icon, outline, rounded caps",
+  prompt: "rocket taking off",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
   style: "outline",
   strokeWidth: 1.5,
@@ -214,6 +229,21 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     }
   }, [state.prompt, opts, stageLabels, session?.user, router, queryClient]);
 
+  const saveVariantChoice = useCallback(
+    (id: string, index: number) => {
+      void fetch("/api/svg/history", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, variantIndex: index }),
+      })
+        .then(() =>
+          queryClient.invalidateQueries({ queryKey: ["svg-history"] }),
+        )
+        .catch(() => {});
+    },
+    [queryClient],
+  );
+
   const selectVariant = useCallback(
     (index: number) => {
       const next = state.variants[index];
@@ -226,18 +256,14 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         activeVariant: index,
       }));
 
-      if (!state.generationId) return;
-      void fetch("/api/svg/history", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: state.generationId, variantIndex: index }),
-      })
-        .then(() =>
-          queryClient.invalidateQueries({ queryKey: ["svg-history"] }),
-        )
-        .catch(() => {});
+      if (state.generationId) saveVariantChoice(state.generationId, index);
     },
-    [state.variants, state.activeVariant, state.generationId, queryClient],
+    [
+      state.variants,
+      state.activeVariant,
+      state.generationId,
+      saveVariantChoice,
+    ],
   );
 
   const generatePack = useCallback(async () => {
@@ -318,44 +344,58 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
 
   const copySvg = useCallback(async () => {
     if (!state.svg) return;
-    await navigator.clipboard.writeText(state.svg);
+    const ok = await copyToClipboard(state.svg);
+    if (!ok) return;
     setState((s) => ({ ...s, copied: true }));
     setTimeout(() => setState((s) => ({ ...s, copied: false })), 2000);
   }, [state.svg]);
 
   const downloadSvg = useCallback((content: string, name = "icon") => {
-    if (!content) return;
-    const safe = name.replace(/[^a-z0-9-_]/gi, "-").slice(0, 32) || "icon";
-    const blob = new Blob([content], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${safe}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadSvgFile(content, name);
   }, []);
 
   const downloadSingle = useCallback(() => {
     if (!state.svg) return;
-    const name =
-      state.prompt
-        .trim()
-        .replace(/[^a-z0-9-_]/gi, "-")
-        .slice(0, 32) || "icon";
-    downloadSvg(state.svg, name);
+    downloadSvg(state.svg, fileNameFor(state.prompt));
   }, [state.svg, state.prompt, downloadSvg]);
 
-  const loadSvgIntoWorkspace = useCallback((svg: string, prompt?: string) => {
-    setState((s) => ({
-      ...s,
-      svg,
-      displaySvg: svg,
-      variants: [],
-      activeVariant: 0,
-      generationId: null,
-      ...(prompt !== undefined ? { prompt: prompt.trim() || s.prompt } : {}),
-    }));
-  }, []);
+  const downloadSinglePng = useCallback(() => {
+    if (!state.svg) return;
+    downloadSvgAsPng(state.svg, fileNameFor(state.prompt), 512);
+  }, [state.svg, state.prompt]);
+
+  const loadSvgIntoWorkspace = useCallback(
+    (svg: string, options: LoadOptions = {}) => {
+      const variants =
+        options.variants && options.variants.length > 1 ? options.variants : [];
+      const index = Math.max(0, variants.indexOf(svg));
+      setState((s) => ({
+        ...s,
+        mode: "single",
+        error: null,
+        svg,
+        displaySvg: svg,
+        variants,
+        activeVariant: index,
+        generationId: options.generationId ?? null,
+        ...(options.prompt !== undefined
+          ? { prompt: options.prompt.trim() || s.prompt }
+          : {}),
+      }));
+    },
+    [],
+  );
+
+  const reusePrompt = useCallback(
+    (prompt: string, mode: "single" | "pack") => {
+      setState((s) =>
+        mode === "single"
+          ? { ...s, mode, prompt: prompt.trim(), error: null }
+          : { ...s, mode, packPrompts: prompt.trim(), error: null },
+      );
+    },
+    [],
+  );
 
   const clearError = useCallback(() => {
     setState((s) => ({ ...s, error: null }));
@@ -378,7 +418,10 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     copySvg,
     downloadSvg,
     downloadSingle,
+    downloadSinglePng,
     loadSvgIntoWorkspace,
+    reusePrompt,
+    saveVariantChoice,
     clearError,
   };
 
