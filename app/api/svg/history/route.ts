@@ -10,6 +10,11 @@ const deleteBodySchema = z.object({
   id: z.string().uuid(),
 });
 
+const patchBodySchema = z.object({
+  id: z.string().uuid(),
+  variantIndex: z.number().int().min(0).max(8),
+});
+
 export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -19,7 +24,14 @@ export async function GET() {
     }
 
     const rows = await db
-      .select()
+      .select({
+        id: svgGeneration.id,
+        prompt: svgGeneration.prompt,
+        mode: svgGeneration.mode,
+        generatedSvg: svgGeneration.generatedSvg,
+        generatedPack: svgGeneration.generatedPack,
+        createdAt: svgGeneration.createdAt,
+      })
       .from(svgGeneration)
       .where(eq(svgGeneration.userId, session.user.id))
       .orderBy(desc(svgGeneration.createdAt))
@@ -75,6 +87,54 @@ export async function GET() {
       { error: "Failed to load history", items: [] },
       { status: 500 },
     );
+  }
+}
+
+/** Pick which traced variant is saved as the generation's icon. */
+export async function PATCH(request: Request) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let json: unknown;
+    try {
+      json = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body." },
+        { status: 400 },
+      );
+    }
+
+    const parsed = patchBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const where = and(
+      eq(svgGeneration.id, parsed.data.id),
+      eq(svgGeneration.userId, session.user.id),
+    );
+
+    const [row] = await db
+      .select({ variants: svgGeneration.variants })
+      .from(svgGeneration)
+      .where(where)
+      .limit(1);
+
+    const svg = row?.variants?.[parsed.data.variantIndex];
+    if (!svg) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    await db.update(svgGeneration).set({ generatedSvg: svg }).where(where);
+
+    return NextResponse.json({ updated: true });
+  } catch (error) {
+    console.error("Failed to update SVG history item:", error);
+    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 }
 

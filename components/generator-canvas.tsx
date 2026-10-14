@@ -10,8 +10,17 @@ import { PackLoading } from "@/components/svg-generator/pack-loading";
 import { EmptyState } from "@/components/svg-generator/empty-state";
 
 export function GeneratorCanvas() {
-  const { mode, svg, displaySvg, loading, packResults, loadingPack } =
-    useSvgGenerator();
+  const {
+    mode,
+    svg,
+    displaySvg,
+    loading,
+    packResults,
+    loadingPack,
+    variants,
+    activeVariant,
+    selectVariant,
+  } = useSvgGenerator();
   const [tab, setTab] = useState<"canvas" | "code">("canvas");
   // Edited SVG is local and optional (code tab)
   const [editedSvg, setEditedSvg] = useState<string | null>(null);
@@ -218,6 +227,39 @@ export function GeneratorCanvas() {
                     <span className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b border-l border-zinc-500/40" />
                     <span className="absolute top-0 right-0 h-2.5 w-2.5 border-t border-r border-zinc-500/40" />
                     <span className="absolute top-0 left-0 h-2.5 w-2.5 border-t border-l border-zinc-500/40" />
+                  </div>
+                )}
+
+                {!loading && svg && tab === "canvas" && variants.length > 1 && (
+                  <div className="flex w-full max-w-[720px] items-center justify-between gap-4 border border-zinc-800/80 bg-[#0a0a0c]/80 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                        Variants
+                      </p>
+                      <p className="mt-1 text-[11px] text-zinc-600">
+                        Pick the take you like; it&apos;s saved to history
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {variants.map((variant, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => {
+                            setEditedSvg(null);
+                            selectVariant(index);
+                          }}
+                          aria-label={`Use variant ${index + 1}`}
+                          aria-pressed={index === activeVariant}
+                          className={`flex h-14 w-14 items-center justify-center border p-2.5 text-zinc-100 transition-colors [&_svg]:h-full [&_svg]:w-full ${
+                            index === activeVariant
+                              ? "border-zinc-300 bg-zinc-800"
+                              : "border-zinc-800/80 bg-[#101014] hover:border-zinc-600"
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: variant }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
 

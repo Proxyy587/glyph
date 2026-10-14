@@ -39,6 +39,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  serverExternalPackages: ["@neplex/vectorizer", "sharp"],
   async headers() {
     return [
       {

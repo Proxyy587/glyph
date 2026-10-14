@@ -13,7 +13,7 @@ export const GLYPH_CLASSIFY_MODEL =
 export const GLYPH_PLAN_MODEL =
   process.env.GLYPH_PLAN_MODEL ?? "openai/gpt-4o-mini";
 
-/** Default generate model — used when UI does not pass a model. */
+/** Model the code engine uses; users never choose it. */
 export const GLYPH_GENERATE_MODEL =
   process.env.GLYPH_GENERATE_MODEL ?? "openai/gpt-4o-mini";
 

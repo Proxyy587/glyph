@@ -1,8 +1,3 @@
-import {
-  OPENROUTER_FREE_MODELS,
-  type OpenRouterModelId,
-} from "@/lib/openrouter-models";
-
 export const STYLES = [
   { id: "outline", label: "Outline" },
   { id: "solid", label: "Solid" },
@@ -32,7 +27,3 @@ export type SvgOptions = {
   padding: number;
   viewBoxSize: ViewBoxSize;
 };
-
-export const SVG_MODELS = OPENROUTER_FREE_MODELS;
-
-export type SvgModelId = OpenRouterModelId;

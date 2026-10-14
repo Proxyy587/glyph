@@ -12,10 +12,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
-  SVG_MODELS,
   type PackItem,
   type StyleId,
-  type SvgModelId,
   type ViewBoxSize,
 } from "@/lib/svg-generator-types";
 import { useSession } from "@/lib/authClient";
@@ -23,10 +21,10 @@ import { toast } from "sonner";
 import { getQueryClient } from "@/lib/query-client";
 
 export const GLYPH_STAGE_LABELS = [
-  "Reading intent…",
-  "Planning geometry…",
-  "Drafting vector paths…",
-  "Validating SVG…",
+  "Reading your prompt…",
+  "Exploring ideas…",
+  "Shaping the icon…",
+  "Refining details…",
   "Polishing output…",
 ] as const;
 
@@ -34,7 +32,6 @@ type SvgGeneratorState = {
   mode: "single" | "pack";
   prompt: string;
   packPrompts: string;
-  modelId: SvgModelId;
   style: StyleId;
   strokeWidth: number;
   cornerRadius: number;
@@ -42,6 +39,9 @@ type SvgGeneratorState = {
   viewBoxSize: ViewBoxSize;
   svg: string | null;
   displaySvg: string | null;
+  variants: string[];
+  activeVariant: number;
+  generationId: string | null;
   packResults: PackItem[];
   loading: boolean;
   loadingPack: boolean;
@@ -54,7 +54,7 @@ type SvgGeneratorContextValue = SvgGeneratorState & {
   setMode: (mode: "single" | "pack") => void;
   setPrompt: (prompt: string) => void;
   setPackPrompts: (prompt: string) => void;
-  setModelId: (id: SvgModelId) => void;
+  selectVariant: (index: number) => void;
   setStyle: (style: StyleId) => void;
   setStrokeWidth: (v: number) => void;
   setCornerRadius: (v: number) => void;
@@ -73,7 +73,6 @@ const initialState: SvgGeneratorState = {
   mode: "single",
   prompt: "cloud upload icon, outline, rounded caps",
   packPrompts: "settings gear\nheart\nstar\ncloud upload",
-  modelId: "openai/gpt-4o-mini",
   style: "outline",
   strokeWidth: 1.5,
   cornerRadius: 0,
@@ -81,6 +80,9 @@ const initialState: SvgGeneratorState = {
   viewBoxSize: 24,
   svg: null,
   displaySvg: null,
+  variants: [],
+  activeVariant: 0,
+  generationId: null,
   packResults: [],
   loading: false,
   loadingPack: false,
@@ -91,17 +93,18 @@ const initialState: SvgGeneratorState = {
 
 function startStageCycle(
   setState: Dispatch<SetStateAction<SvgGeneratorState>>,
+  labels: readonly string[],
 ): () => void {
   let index = 0;
   setState((s) => ({
     ...s,
-    loadingStage: GLYPH_STAGE_LABELS[0],
+    loadingStage: labels[0],
   }));
   const id = window.setInterval(() => {
-    index = Math.min(index + 1, GLYPH_STAGE_LABELS.length - 1);
+    index = Math.min(index + 1, labels.length - 1);
     setState((s) => ({
       ...s,
-      loadingStage: GLYPH_STAGE_LABELS[index],
+      loadingStage: labels[index],
     }));
   }, 2200);
   return () => window.clearInterval(id);
@@ -117,9 +120,6 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const queryClient = getQueryClient();
 
-  const currentModel =
-    SVG_MODELS.find((entry) => entry.id === state.modelId) ?? SVG_MODELS[0];
-
   const opts = useMemo(
     () => ({
       style: state.style,
@@ -127,7 +127,6 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       viewBoxSize: state.viewBoxSize,
-      model: currentModel.id,
     }),
     [
       state.style,
@@ -135,9 +134,10 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       state.cornerRadius,
       state.padding,
       state.viewBoxSize,
-      currentModel.id,
     ],
   );
+
+  const stageLabels = GLYPH_STAGE_LABELS;
 
   const generate = useCallback(async () => {
     if (!state.prompt.trim()) return;
@@ -153,13 +153,16 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const stopStages = startStageCycle(setState);
+    const stopStages = startStageCycle(setState, stageLabels);
     setState((s) => ({
       ...s,
       loading: true,
       error: null,
       svg: null,
       displaySvg: null,
+      variants: [],
+      activeVariant: 0,
+      generationId: null,
     }));
     try {
       const res = await fetch("/api/svg", {
@@ -184,6 +187,9 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         return;
       }
       const full = (data.svg as string) ?? "";
+      const variants = Array.isArray(data.variants)
+        ? (data.variants as string[])
+        : [full];
 
       setState((s) => ({
         ...s,
@@ -191,6 +197,9 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         loadingStage: null,
         svg: full,
         displaySvg: full,
+        variants,
+        activeVariant: 0,
+        generationId: typeof data.id === "string" ? data.id : null,
       }));
 
       queryClient.invalidateQueries({ queryKey: ["svg-history"] });
@@ -203,7 +212,33 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [state.prompt, opts, session?.user, router, queryClient]);
+  }, [state.prompt, opts, stageLabels, session?.user, router, queryClient]);
+
+  const selectVariant = useCallback(
+    (index: number) => {
+      const next = state.variants[index];
+      if (!next || index === state.activeVariant) return;
+
+      setState((s) => ({
+        ...s,
+        svg: next,
+        displaySvg: next,
+        activeVariant: index,
+      }));
+
+      if (!state.generationId) return;
+      void fetch("/api/svg/history", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: state.generationId, variantIndex: index }),
+      })
+        .then(() =>
+          queryClient.invalidateQueries({ queryKey: ["svg-history"] }),
+        )
+        .catch(() => {});
+    },
+    [state.variants, state.activeVariant, state.generationId, queryClient],
+  );
 
   const generatePack = useCallback(async () => {
     const lines = state.packPrompts
@@ -223,7 +258,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const stopStages = startStageCycle(setState);
+    const stopStages = startStageCycle(setState, stageLabels);
     setState((s) => ({
       ...s,
       loadingPack: true,
@@ -272,7 +307,14 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
         error: e instanceof Error ? e.message : "Request failed",
       }));
     }
-  }, [state.packPrompts, opts, session?.user, router, queryClient]);
+  }, [
+    state.packPrompts,
+    opts,
+    stageLabels,
+    session?.user,
+    router,
+    queryClient,
+  ]);
 
   const copySvg = useCallback(async () => {
     if (!state.svg) return;
@@ -308,6 +350,9 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
       ...s,
       svg,
       displaySvg: svg,
+      variants: [],
+      activeVariant: 0,
+      generationId: null,
       ...(prompt !== undefined ? { prompt: prompt.trim() || s.prompt } : {}),
     }));
   }, []);
@@ -321,7 +366,7 @@ export function SvgGeneratorProvider({ children }: { children: ReactNode }) {
     setMode: (mode) => setState((s) => ({ ...s, mode })),
     setPrompt: (prompt) => setState((s) => ({ ...s, prompt })),
     setPackPrompts: (packPrompts) => setState((s) => ({ ...s, packPrompts })),
-    setModelId: (modelId) => setState((s) => ({ ...s, modelId })),
+    selectVariant,
     setStyle: (style) => setState((s) => ({ ...s, style })),
     setStrokeWidth: (strokeWidth) => setState((s) => ({ ...s, strokeWidth })),
     setCornerRadius: (cornerRadius) =>

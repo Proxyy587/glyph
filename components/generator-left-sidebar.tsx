@@ -1,23 +1,17 @@
 "use client";
 
 import { useSvgGenerator } from "@/contexts/svg-generator-context";
-import { SVG_MODELS, type SvgModelId } from "@/lib/svg-generator-types";
 import { PromptInput } from "@/components/svg-generator/prompt-input";
 import { PackPromptInput } from "@/components/svg-generator/pack-prompt-input";
 import { StylePresets } from "@/components/svg-generator/style-presets";
 import { IconControls } from "@/components/svg-generator/icon-controls";
 import { ModeToggle } from "@/components/svg-generator/mode-toggle";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { siteConfig } from "@/lib/site";
+
+const GLYPH_MODEL_NAME = `${siteConfig.name} 1`;
 
 export function GeneratorLeftSidebar() {
-  const { mode, svg, copied, copySvg, downloadSingle, modelId, setModelId } =
-    useSvgGenerator();
+  const { mode, svg, copied, copySvg, downloadSingle } = useSvgGenerator();
 
   return (
     <aside className="flex h-full min-h-0 w-[290px] shrink-0 flex-col overflow-hidden border-r border-zinc-800/80 bg-[#0a0a0c]">
@@ -40,41 +34,10 @@ export function GeneratorLeftSidebar() {
           <StylePresets />
           <div className="mt-4">
             <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-500">
-              Engine
+              Model
             </p>
-            <div className="mt-2">
-              <Select
-                value={modelId}
-                onValueChange={(value) => setModelId(value as SvgModelId)}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="w-full justify-between border-zinc-800 bg-zinc-900/60 text-[11px] text-zinc-200"
-                >
-                  <SelectValue placeholder="Choose model" />
-                </SelectTrigger>
-                <SelectContent
-                  align="start"
-                  className="bg-[#0a0a0c] border-zinc-800"
-                >
-                  {SVG_MODELS.map((entry) => (
-                    <SelectItem
-                      key={entry.id}
-                      value={entry.id}
-                      className="flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-xs text-zinc-200 hover:text-white"
-                    >
-                      <span className="flex flex-col">
-                        <span className="font-medium text-inherit">
-                          {entry.provider} • {entry.label}
-                        </span>
-                        {/* <span className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-                        {entry.provider}
-                      </span> */}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="mt-2 flex h-8 w-full items-center border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-200">
+              {GLYPH_MODEL_NAME}
             </div>
           </div>
           <IconControls />

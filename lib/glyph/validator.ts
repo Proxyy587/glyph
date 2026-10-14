@@ -85,16 +85,18 @@ function ensureXmlns(svg: string): string {
   return svg.replace(/<svg\b/i, `<svg xmlns="http://www.w3.org/2000/svg"`);
 }
 
+/**
+ * Only the root <svg> tag loses width/height; child <rect>/<image> sizes and
+ * `stroke-width` must stay intact.
+ */
 function ensureViewBox(svg: string, size: number): string {
-  if (/viewBox\s*=/.test(svg)) {
-    return svg
-      .replace(/\s*width\s*=\s*["'][^"']*["']/gi, "")
-      .replace(/\s*height\s*=\s*["'][^"']*["']/gi, "");
-  }
-  return svg
-    .replace(/\s*width\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/\s*height\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/<svg\b/i, `<svg viewBox="0 0 ${size} ${size}"`);
+  return svg.replace(/<svg\b[^>]*>/i, (tag) => {
+    let root = tag.replace(/\s(?:width|height)\s*=\s*(["'])[^"']*\1/gi, "");
+    if (!/\sviewBox\s*=/i.test(root)) {
+      root = root.replace(/<svg\b/i, `<svg viewBox="0 0 ${size} ${size}"`);
+    }
+    return root;
+  });
 }
 
 function applyStroke(svg: string, strokeWidth: number): string {

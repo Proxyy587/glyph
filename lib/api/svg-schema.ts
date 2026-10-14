@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { OPENROUTER_FREE_MODELS } from "@/lib/openrouter-models";
 import { STYLE_GUIDE } from "@/lib/glyph/prompts";
 
 export const MAX_PROMPT_LENGTH = Number(
@@ -8,7 +7,12 @@ export const MAX_PROMPT_LENGTH = Number(
 export const MAX_PACK_SIZE = Number(process.env.GLYPH_MAX_PACK_SIZE ?? 8);
 export const PACK_CONCURRENCY = Number(process.env.GLYPH_PACK_CONCURRENCY ?? 3);
 
-const ALLOWED_MODELS = new Set<string>(OPENROUTER_FREE_MODELS.map((m) => m.id));
+export const GLYPH_ENGINES = ["trace", "code"] as const;
+export type GlyphEngine = (typeof GLYPH_ENGINES)[number];
+
+/** Server-only choice; clients never pick the engine or model. */
+export const DEFAULT_ENGINE: GlyphEngine =
+  process.env.GLYPH_DEFAULT_ENGINE === "code" ? "code" : "trace";
 
 export const svgGenerateBodySchema = z
   .object({
@@ -27,7 +31,6 @@ export const svgGenerateBodySchema = z
       .array(z.string().max(MAX_PROMPT_LENGTH))
       .max(MAX_PACK_SIZE)
       .optional(),
-    model: z.string().max(120).optional(),
   })
   .superRefine((data, ctx) => {
     const pack = (data.packPrompts ?? []).map((p) => p.trim()).filter(Boolean);
@@ -38,14 +41,6 @@ export const svgGenerateBodySchema = z
         code: "custom",
         message: "Enter a prompt and click Generate to see your icon.",
         path: ["prompt"],
-      });
-    }
-
-    if (data.model && !ALLOWED_MODELS.has(data.model)) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Unsupported model.",
-        path: ["model"],
       });
     }
   });

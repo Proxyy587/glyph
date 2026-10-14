@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json}\"",
+    "db:push": "drizzle-kit push",
     "prepare": "husky"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@google/genai": "^1.39.0",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.0.2",
+    "@neplex/vectorizer": "^0.1.0",
     "@openrouter/ai-sdk-provider": "^2.8.1",
     "@tanstack/react-query": "^5.90.21",
     "ai": "^6.0.68",
@@ -30,6 +32,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "svgo": "^4.0.2",
     "tailwind-merge": "^3.4.0",
